@@ -8,12 +8,12 @@ interface OverviewProps {
 
 const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
     const [stats, setStats] = React.useState<any>({
-        total_cpus: 42.8,
-        total_storage: 1.2,
-        total_egress: 892,
-        active_tenants: 14,
-        trend_cpus: 12,
-        trend_storage: -4
+        total_cpus: 0,
+        total_storage: 0,
+        total_egress: 0,
+        active_tenants: 0,
+        trend_cpus: 0,
+        trend_storage: 0
     });
 
     React.useEffect(() => {
@@ -41,8 +41,8 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                     <img src={logoSrc} alt="NebulaOS" style={{ width: '160px', height: '160px', objectFit: 'contain' }} />
                 </div>
                 <div>
-                    <h1 style={{ fontSize: '3.5rem', margin: 0, fontWeight: 900, background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Overview</h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.75rem', fontSize: '1.5rem', fontWeight: 500 }}>Enterprise Control Plane | Sovereign Status: Active</p>
+                    <h1 style={{ fontSize: '3.5rem', margin: 0, fontWeight: 900, background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Overview <span style={{ fontSize: '1rem', verticalAlign: 'middle', opacity: 0.5 }}>v14.2</span></h1>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '0.75rem', fontSize: '1.5rem', fontWeight: 500 }}>Enterprise Control Plane | <span style={{ color: 'var(--primary-light)' }}>Live Data Synchronization Active</span></p>
                 </div>
             </header>
 
@@ -85,7 +85,7 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                     <div style={{ textAlign: 'center', padding: '4rem 0' }}>
                         <LayoutDashboard style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} size={48} />
                         <h3 style={{ color: 'var(--text-muted)' }}>Real-time Performance Metrics</h3>
-                        <p style={{ color: 'rgba(148, 163, 184, 0.6)', fontSize: '0.875rem' }}>Infrastructure synchronization in progress...</p>
+                        <p style={{ color: 'var(--primary-light)', fontSize: '0.875rem', fontWeight: 600 }}>Live Telemetry Engine: Active</p>
                     </div>
                 </div>
 

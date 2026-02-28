@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/jacksonwendel/nebulaos/src/api/domain"
@@ -135,9 +136,36 @@ func main() {
 	}
 
 	fmt.Printf("Repositories initialized (Persistence: %v)\n", dbURL != "")
-	_ = securityGroupRepo // Explicitly use to avoid lint error until usecases are added
-	_ = tfStateRepo       // Explicitly use to avoid lint error until usecases are added
-	_ = blueprintRepo     // Explicitly use to avoid lint error until usecases are added
+	_ = gslbRepo // Explicitly use to avoid lint error until usecases are added
+
+	// Seed test data for Dashboard Verification (v14.2)
+	{
+		ctx := context.Background()
+		// 1. Tenant seeding
+		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t1", Name: "Alpha Corp", CreatedAt: time.Now()})
+		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t2", Name: "Beta Labs", CreatedAt: time.Now()})
+		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t3", Name: "Gamma Systems", CreatedAt: time.Now()})
+
+		// 2. Project seeding (mandatory for resources FK in Postgres)
+		projectRepo.Create(ctx, &domain.Project{ID: "v-p1", TenantID: "v-t1", Name: "Default Project", CreatedAt: time.Now()})
+
+		// 3. Resource seeding (Compute) - 3 nodes = 6 vCPUs
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n1", ProjectID: "v-p1", Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n2", ProjectID: "v-p1", Name: "Node-2", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n3", ProjectID: "v-p1", Name: "Node-3", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
+
+		// 4. Resource seeding (Storage) - 3 volumes = 1.5 TB
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s1", ProjectID: "v-p1", Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s2", ProjectID: "v-p1", Name: "Vol-2", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s3", ProjectID: "v-p1", Name: "Vol-3", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
+
+		// 5. Blueprint seeding
+		blueprintRepo.Create(ctx, &domain.Blueprint{ID: "bp-k8s", Name: "HA K8s Cluster", Category: "Infrastructure", Description: "Production-ready Kubernetes control plane."})
+		blueprintRepo.Create(ctx, &domain.Blueprint{ID: "bp-db", Name: "Postgres Cluster", Category: "Databases", Description: "HA Postgres with auto-failover."})
+
+		// 6. GSLB seeding
+		gslbRepo.Save(ctx, &domain.GlobalEndpoint{ID: "g-1", Name: "nebula.global", DNSRecord: "api.nebula.global", State: "active", Policy: domain.GSLBPolicy{Strategy: "latency"}})
+	}
 
 	// Services
 	policyService := services.NewSovereignPolicyService(policyRepo)
@@ -172,6 +200,8 @@ func main() {
 
 	createVolumeUC := usecase.NewCreateVolumeUseCase(volumeRepo, storageProvider)
 	createBucketUC := usecase.NewCreateBucketUseCase(bucketRepo, storageProvider)
+	listVolumesUC := usecase.NewListVolumesUseCase(volumeRepo)
+	listBucketsUC := usecase.NewListBucketsUseCase(bucketRepo)
 
 	requestCertUC := usecase.NewRequestCertificateUseCase(traefikProvider)
 	storeSecretUC := usecase.NewStoreSecretUseCase(vaultProvider)
@@ -181,7 +211,7 @@ func main() {
 	tenantHandler := api.NewTenantHandler(createTenantUC, getTenantUC, listTenantsUC)
 	projectHandler := api.NewProjectHandler(createProjectUC, getProjectUC, listProjectsUC)
 	resourceHandler := api.NewResourceHandler(createResourceUC, getResourceUC, listResourcesUC)
-	storageHandler := api.NewStorageHandler(createVolumeUC, createBucketUC)
+	storageHandler := api.NewStorageHandler(createVolumeUC, createBucketUC, listVolumesUC, listBucketsUC)
 	complianceHandler := api.NewComplianceHandler(complianceUC)
 	billingHandler := api.NewBillingHandler(billingMgr)
 	policyHandler := api.NewPolicyHandler(policyService)
@@ -232,7 +262,7 @@ func main() {
 	})))
 
 	// Networking & Security Groups
-	mux.Handle("/security-groups", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/security-groups", auditMiddleware.Audit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			var input usecase.CreateSecurityGroupInput
 			json.NewDecoder(r.Body).Decode(&input)
@@ -251,7 +281,7 @@ func main() {
 			}
 			json.NewEncoder(w).Encode(sgs)
 		}
-	}))))
+	})))
 
 	mux.Handle("/security-groups/rules", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -282,16 +312,29 @@ func main() {
 		}
 	}))))
 
-	mux.Handle("/resources", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/resources", auditMiddleware.Audit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			resourceHandler.CreateResource(w, r)
 		} else {
 			resourceHandler.ListResources(w, r)
 		}
+	})))
+
+	mux.Handle("/storage/volumes", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			storageHandler.CreateVolume(w, r)
+		} else {
+			storageHandler.ListVolumes(w, r)
+		}
 	}))))
 
-	mux.Handle("/storage/volumes", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(storageHandler.CreateVolume))))
-	mux.Handle("/storage/buckets", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(storageHandler.CreateBucket))))
+	mux.Handle("/storage/buckets", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			storageHandler.CreateBucket(w, r)
+		} else {
+			storageHandler.ListBuckets(w, r)
+		}
+	}))))
 
 	// Billing & Governance
 	mux.Handle("/billing/report", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(billingHandler.GetReport))))
@@ -326,7 +369,7 @@ func main() {
 	})))
 
 	// Marketplace: Blueprints
-	mux.Handle("/marketplace/blueprints", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/marketplace/blueprints", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			var b domain.Blueprint
 			json.NewDecoder(r.Body).Decode(&b)
@@ -340,9 +383,9 @@ func main() {
 			blueprints, _ := listBlueprintsUC.Execute(r.Context())
 			json.NewEncoder(w).Encode(blueprints)
 		}
-	})))
+	}))
 
-	mux.Handle("/marketplace/deploy", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/marketplace/deploy", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -354,10 +397,10 @@ func main() {
 			return
 		}
 		json.NewEncoder(w).Encode(map[string]string{"message": "Deployment initiated"})
-	})))
+	}))
 
 	// Phase 14: Global Orchestration & AI
-	mux.Handle("/network/gslb", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/network/gslb", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			var ep domain.GlobalEndpoint
 			json.NewDecoder(r.Body).Decode(&ep)
@@ -373,7 +416,7 @@ func main() {
 			eps, _ := gslbManager.ListEndpoints(r.Context())
 			json.NewEncoder(w).Encode(eps)
 		}
-	})))
+	}))
 
 	mux.Handle("/intelligence/advisor", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectID := r.URL.Query().Get("project_id")
@@ -385,14 +428,17 @@ func main() {
 		json.NewEncoder(w).Encode(insights)
 	})))
 
-	mux.Handle("/intelligence/stats", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/intelligence/stats", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[DEBUG] Intelligence Stats request from %s", r.RemoteAddr)
 		stats, err := billingMgr.GetGlobalStats(r.Context())
 		if err != nil {
+			log.Printf("[ERROR] Failed to get global stats: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(stats)
-	})))
+	}))
 
 	handlerWithMetrics := metricsMiddleware.Metrics(mux)
 

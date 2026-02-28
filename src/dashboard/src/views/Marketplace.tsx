@@ -1,15 +1,29 @@
 import React from 'react';
-import { Box, Database, ShieldCheck, Zap } from 'lucide-react';
+import { Box, Database, ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
 const Marketplace: React.FC = () => {
+    const [blueprints, setBlueprints] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
     const [deploying, setDeploying] = React.useState<string | null>(null);
 
-    const blueprints = [
-        { id: 'bp-1', name: 'K8s Cluster', desc: 'Secure, multi-zone Kubernetes control plane.', cat: 'Infrastructure', icon: Box },
-        { id: 'bp-2', name: 'Postgres High-Availability', desc: 'Managed DB with auto-failover and backups.', cat: 'Databases', icon: Database },
-        { id: 'bp-3', name: 'Nebula Firewall Edge', desc: 'DDoS protection and advanced WAF.', cat: 'Security', icon: ShieldCheck },
-        { id: 'bp-4', name: 'Redis Cache', desc: 'Low-latency in-memory data store.', cat: 'Cache', icon: Zap }
-    ];
+    const fetchBlueprints = async () => {
+        setLoading(true);
+        try {
+            const resp = await fetch('http://api.nebula.local/marketplace/blueprints');
+            if (resp.ok) {
+                const data = await resp.json();
+                setBlueprints(data || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch blueprints", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchBlueprints();
+    }, []);
 
     const handleDeploy = async (bpId: string) => {
         setDeploying(bpId);
@@ -19,7 +33,7 @@ const Marketplace: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     blueprint_id: bpId,
-                    project_id: 'proj-default' // Mock or from context
+                    project_id: 'v-p1'
                 })
             });
             if (resp.ok) {
@@ -32,6 +46,15 @@ const Marketplace: React.FC = () => {
         }
     };
 
+    const getBlueprintIcon = (category: string) => {
+        switch (category?.toLowerCase()) {
+            case 'infrastructure': return Box;
+            case 'databases': return Database;
+            case 'security': return ShieldCheck;
+            default: return Zap;
+        }
+    };
+
     return (
         <div className="view-container animate-fade-in">
             <header className="view-header">
@@ -39,24 +62,35 @@ const Marketplace: React.FC = () => {
                     <h1>Cloud Marketplace</h1>
                     <p className="text-muted">Launch production-ready infrastructure blueprints in seconds.</p>
                 </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn-secondary" onClick={fetchBlueprints} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
+                </div>
             </header>
 
             <div className="stats-grid" style={{ marginTop: '2rem' }}>
+                {blueprints.length === 0 && !loading && (
+                    <div className="stat-card glass" style={{ gridColumn: 'span 3', textAlign: 'center', padding: '4rem' }}>
+                        <p className="text-muted">No blueprints available in the marketplace.</p>
+                    </div>
+                )}
                 {blueprints.map(bp => {
-                    const Icon = bp.icon;
+                    const Icon = getBlueprintIcon(bp.category);
                     return (
                         <div key={bp.id} className="stat-card glass-hover" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem' }}>
-                            <div className="stat-icon" style={{ background: 'var(--primary-gradient)', color: 'white' }}>
-                                <Icon size={24} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div className="stat-icon" style={{ background: 'var(--primary-gradient)', color: 'white' }}>
+                                    <Icon size={24} />
+                                </div>
+                                <span className="badge badge-success">{bp.category}</span>
                             </div>
                             <div>
                                 <h3 style={{ fontSize: '1.25rem' }}>{bp.name}</h3>
-                                <span className="stat-label" style={{ background: 'var(--bg-accent)', color: 'var(--primary-light)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem' }}>
-                                    {bp.cat}
-                                </span>
                             </div>
-                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-                                {bp.desc}
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6', flex: 1 }}>
+                                {bp.description}
                             </p>
                             <button
                                 className="btn-primary"

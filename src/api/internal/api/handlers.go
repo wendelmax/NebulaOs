@@ -193,13 +193,37 @@ func (h *ResourceHandler) ListResources(w http.ResponseWriter, r *http.Request) 
 type StorageHandler struct {
 	createVolumeUC *usecase.CreateVolumeUseCase
 	createBucketUC *usecase.CreateBucketUseCase
+	listVolumeUC   *usecase.ListVolumesUseCase
+	listBucketUC   *usecase.ListBucketsUseCase
 }
 
-func NewStorageHandler(cvUC *usecase.CreateVolumeUseCase, cbUC *usecase.CreateBucketUseCase) *StorageHandler {
+func NewStorageHandler(cvUC *usecase.CreateVolumeUseCase, cbUC *usecase.CreateBucketUseCase, lvUC *usecase.ListVolumesUseCase, lbUC *usecase.ListBucketsUseCase) *StorageHandler {
 	return &StorageHandler{
 		createVolumeUC: cvUC,
 		createBucketUC: cbUC,
+		listVolumeUC:   lvUC,
+		listBucketUC:   lbUC,
 	}
+}
+
+func (h *StorageHandler) ListVolumes(w http.ResponseWriter, r *http.Request) {
+	projectID := r.URL.Query().Get("project_id")
+	vols, err := h.listVolumeUC.Execute(r.Context(), projectID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(vols)
+}
+
+func (h *StorageHandler) ListBuckets(w http.ResponseWriter, r *http.Request) {
+	projectID := r.URL.Query().Get("project_id")
+	buckets, err := h.listBucketUC.Execute(r.Context(), projectID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(buckets)
 }
 
 func (h *StorageHandler) CreateVolume(w http.ResponseWriter, r *http.Request) {

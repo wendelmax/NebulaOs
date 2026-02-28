@@ -72,3 +72,27 @@ func (uc *CreateBucketUseCase) Execute(ctx context.Context, input CreateBucketIn
 
 	return uc.provider.CreateBucket(ctx, b)
 }
+
+type ListVolumesUseCase struct {
+	repo domain.VolumeRepository
+}
+
+func NewListVolumesUseCase(repo domain.VolumeRepository) *ListVolumesUseCase {
+	return &ListVolumesUseCase{repo: repo}
+}
+
+func (uc *ListVolumesUseCase) Execute(ctx context.Context, projectID string) ([]*domain.Volume, error) {
+	return uc.repo.ListByProject(ctx, projectID)
+}
+
+type ListBucketsUseCase struct {
+	repo domain.BucketRepository
+}
+
+func NewListBucketsUseCase(repo domain.BucketRepository) *ListBucketsUseCase {
+	return &ListBucketsUseCase{repo: repo}
+}
+
+func (uc *ListBucketsUseCase) Execute(ctx context.Context, projectID string) ([]*domain.Bucket, error) {
+	return uc.repo.ListByProject(ctx, projectID)
+}
