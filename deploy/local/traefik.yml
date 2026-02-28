@@ -1,0 +1,22 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: DEBUG
+
+accessLog:
+  filePath: "/var/log/traefik_access.log"
+
+api:
+  insecure: true
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/traefik_dynamic.yml
+    watch: true

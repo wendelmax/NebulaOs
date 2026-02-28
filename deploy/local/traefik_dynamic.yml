@@ -1,0 +1,22 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`nebula.local`)"
+      service: dashboard-service
+      entryPoints:
+        - web
+    api:
+      rule: "Host(`api.nebula.local`)"
+      service: api-service
+      entryPoints:
+        - web
+
+  services:
+    dashboard-service:
+      loadBalancer:
+        servers:
+          - url: "http://nebula-dashboard:80"
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://nebula-api:8000"

@@ -1,0 +1,43 @@
+name: NebulaOS CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test-api:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Install dependencies
+      run: cd src/api && go mod download
+
+    - name: Build API
+      run: cd src/api && go build -v ./...
+
+    - name: Run API Tests
+      run: cd src/api && go test -v ./...
+
+  build-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dashboard dependencies
+      run: cd src/dashboard && npm install
+
+    - name: Build Dashboard
+      run: cd src/dashboard && npm run build
