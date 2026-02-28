@@ -1,6 +1,16 @@
 package domain
 
-import "time"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
+
+func NewID() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
+}
 
 type Tenant struct {
 	ID        string    `json:"id"`
@@ -24,15 +34,40 @@ const (
 )
 
 type Resource struct {
-	ID         string                 `json:"id"`
-	ProjectID  string                 `json:"project_id"`
-	Name       string                 `json:"name"`
-	Type       ResourceType           `json:"type"`
-	Provider   string                 `json:"provider"`
-	ProviderID string                 `json:"provider_id"`
-	State      string                 `json:"state"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	CreatedAt  time.Time              `json:"created_at"`
+	ID             string                 `json:"id"`
+	ProjectID      string                 `json:"project_id"`
+	Name           string                 `json:"name"`
+	Type           ResourceType           `json:"type"`
+	Provider       string                 `json:"provider"`
+	ProviderID     string                 `json:"provider_id"`
+	State          string                 `json:"state"`
+	Metadata       map[string]interface{} `json:"metadata"`
+	BlueprintID    string                 `json:"blueprint_id,omitempty"`
+	SecurityGroups []string               `json:"security_groups,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
+}
+
+type ResourceInsight struct {
+	ResourceID string    `json:"resource_id"`
+	Type       string    `json:"type"` // e.g., "cost", "performance", "security"
+	Message    string    `json:"message"`
+	Severity   string    `json:"severity"` // "low", "medium", "high"
+	Actionable bool      `json:"actionable"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type GlobalEndpoint struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	DNSRecord string     `json:"dns_record"`
+	Policy    GSLBPolicy `json:"policy"`
+	Endpoints []string   `json:"endpoints"` // List of regional resource IDs (e.g., LBs)
+	State     string     `json:"state"`
+}
+
+type GSLBPolicy struct {
+	Strategy string `json:"strategy"` // "round-robin", "latency", "failover"
+	Region   string `json:"region"`
 }
 
 type Domain struct {
@@ -144,4 +179,13 @@ type SecurityGroup struct {
 	Name      string         `json:"name"`
 	Rules     []FirewallRule `json:"rules"`
 	CreatedAt time.Time      `json:"created_at"`
+}
+
+type GlobalStats struct {
+	TotalCPUs     float64 `json:"total_cpus"`
+	TotalStorage  float64 `json:"total_storage"`
+	TotalEgress   float64 `json:"total_egress"`
+	ActiveTenants int     `json:"active_tenants"`
+	TrendCPUs     float64 `json:"trend_cpus"`
+	TrendStorage  float64 `json:"trend_storage"`
 }

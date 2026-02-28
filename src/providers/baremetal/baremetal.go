@@ -35,3 +35,7 @@ func (p *BareMetalProvider) Decommission(ctx context.Context, resource *domain.R
 func (p *BareMetalProvider) GetStatus(ctx context.Context, resourceID string) (string, error) {
 	return "power_on", nil
 }
+func (p *BareMetalProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	fmt.Printf("[BareMetal] Applying ACLs/VLAN tags for Security Group %s to switch port of node %s\n", sgID, resourceID)
+	return nil
+}

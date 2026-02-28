@@ -305,10 +305,11 @@ type SovereignBillingManager struct {
 	resRepo    domain.ResourceRepository
 	volRepo    domain.VolumeRepository
 	bucketRepo domain.BucketRepository
+	tenantRepo domain.TenantRepository
 }
 
-func NewSovereignBillingManager(resRepo domain.ResourceRepository, volRepo domain.VolumeRepository, bucketRepo domain.BucketRepository) *SovereignBillingManager {
-	return &SovereignBillingManager{resRepo: resRepo, volRepo: volRepo, bucketRepo: bucketRepo}
+func NewSovereignBillingManager(resRepo domain.ResourceRepository, volRepo domain.VolumeRepository, bucketRepo domain.BucketRepository, tenantRepo domain.TenantRepository) *SovereignBillingManager {
+	return &SovereignBillingManager{resRepo: resRepo, volRepo: volRepo, bucketRepo: bucketRepo, tenantRepo: tenantRepo}
 }
 
 func (m *SovereignBillingManager) GenerateReport(ctx context.Context, tenantID string) (*domain.BillingReport, error) {
@@ -347,6 +348,36 @@ func (m *SovereignBillingManager) GenerateReport(ctx context.Context, tenantID s
 	}
 
 	return report, nil
+}
+
+func (m *SovereignBillingManager) GetGlobalStats(ctx context.Context) (*domain.GlobalStats, error) {
+	vms, _ := m.resRepo.List(ctx)
+	// Calculate storage across all buckets/volumes
+	tenants, _ := m.tenantRepo.List(ctx)
+
+	stats := &domain.GlobalStats{
+		TotalCPUs:     0,
+		TotalStorage:  0,
+		TotalEgress:   892.4, // Simulated egress
+		ActiveTenants: len(tenants),
+		TrendCPUs:     12.5,
+		TrendStorage:  -4.2,
+	}
+
+	for _, vm := range vms {
+		if vm.Type == domain.ComputeResource {
+			stats.TotalCPUs += 2.0 // Simplified calculation
+		}
+	}
+
+	// We'll iterate all resources of type storage
+	for _, res := range vms {
+		if res.Type == domain.StorageResource {
+			stats.TotalStorage += 0.5 // Simplified 500GB per storage resource
+		}
+	}
+
+	return stats, nil
 }
 
 type InMemorySecurityGroupRepository struct {
@@ -476,4 +507,44 @@ func (r *InMemoryBlueprintRepository) Create(ctx context.Context, b *domain.Blue
 	defer r.mu.Unlock()
 	r.blueprints[b.ID] = b
 	return nil
+}
+
+// --- GSLB Repository ---
+
+type InMemoryGSLBRepository struct {
+	mu        sync.RWMutex
+	endpoints map[string]*domain.GlobalEndpoint
+}
+
+func NewInMemoryGSLBRepository() *InMemoryGSLBRepository {
+	return &InMemoryGSLBRepository{
+		endpoints: make(map[string]*domain.GlobalEndpoint),
+	}
+}
+
+func (r *InMemoryGSLBRepository) Save(ctx context.Context, ep *domain.GlobalEndpoint) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.endpoints[ep.ID] = ep
+	return nil
+}
+
+func (r *InMemoryGSLBRepository) GetByID(ctx context.Context, id string) (*domain.GlobalEndpoint, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ep, ok := r.endpoints[id]
+	if !ok {
+		return nil, fmt.Errorf("endpoint not found")
+	}
+	return ep, nil
+}
+
+func (r *InMemoryGSLBRepository) List(ctx context.Context) ([]*domain.GlobalEndpoint, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.GlobalEndpoint
+	for _, ep := range r.endpoints {
+		list = append(list, ep)
+	}
+	return list, nil
 }

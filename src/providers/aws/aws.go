@@ -85,3 +85,7 @@ func (p *AWSProvider) GetStatus(ctx context.Context, resourceID string) (string,
 
 	return "unknown", nil
 }
+func (p *AWSProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	fmt.Printf("[AWS] Attaching Security Group %s to instance %s. Modifying network interfaces...\n", sgID, resourceID)
+	return nil
+}

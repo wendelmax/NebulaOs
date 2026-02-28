@@ -71,3 +71,60 @@ func (uc *CreateBlueprintUseCase) Execute(ctx context.Context, b *domain.Bluepri
 	b.CreatedAt = time.Now()
 	return uc.repo.Create(ctx, b)
 }
+
+type DeployBlueprintInput struct {
+	BlueprintID string                 `json:"blueprint_id"`
+	ProjectID   string                 `json:"project_id"`
+	Variables   map[string]interface{} `json:"variables"`
+}
+
+type DeployBlueprintUseCase struct {
+	blueprintRepo domain.BlueprintRepository
+	resourceRepo  domain.ResourceRepository
+	factory       domain.ProviderFactory
+}
+
+func NewDeployBlueprintUseCase(bpRepo domain.BlueprintRepository, resRepo domain.ResourceRepository, factory domain.ProviderFactory) *DeployBlueprintUseCase {
+	return &DeployBlueprintUseCase{
+		blueprintRepo: bpRepo,
+		resourceRepo:  resRepo,
+		factory:       factory,
+	}
+}
+
+func (uc *DeployBlueprintUseCase) Execute(ctx context.Context, input DeployBlueprintInput) error {
+	bp, err := uc.blueprintRepo.GetByID(ctx, input.BlueprintID)
+	if err != nil {
+		return err
+	}
+
+	// Orchestrate resource creation
+	for _, resDef := range bp.Resources {
+		provider, err := uc.factory.GetProvider(resDef.Provider)
+		if err != nil {
+			return err
+		}
+
+		res := &domain.Resource{
+			ID:          domain.NewID(),
+			ProjectID:   input.ProjectID,
+			Name:        resDef.Name,
+			Type:        resDef.Type,
+			Provider:    resDef.Provider,
+			State:       "provisioning",
+			Metadata:    resDef.Metadata,
+			BlueprintID: bp.ID,
+			CreatedAt:   time.Now(),
+		}
+
+		if err := provider.Provision(ctx, res); err != nil {
+			return err
+		}
+
+		if err := uc.resourceRepo.Create(ctx, res); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

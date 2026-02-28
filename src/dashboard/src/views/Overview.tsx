@@ -7,6 +7,32 @@ interface OverviewProps {
 }
 
 const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
+    const [stats, setStats] = React.useState<any>({
+        total_cpus: 42.8,
+        total_storage: 1.2,
+        total_egress: 892,
+        active_tenants: 14,
+        trend_cpus: 12,
+        trend_storage: -4
+    });
+
+    React.useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const resp = await fetch(`http://api.nebula.local/intelligence/stats?t=${Date.now()}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    setStats(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch stats", err);
+            }
+        };
+        fetchStats();
+        const interval = setInterval(fetchStats, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
     const logoSrc = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -23,23 +49,23 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
             <div className="resource-grid">
                 <ResourceCard
                     title="Compute Consumption"
-                    value="42.8"
+                    value={stats.total_cpus.toFixed(1)}
                     unit="vCPUs"
                     icon={Cpu}
-                    trend={12}
+                    trend={stats.trend_cpus}
                     color="var(--primary)"
                 />
                 <ResourceCard
                     title="Storage Tier 1"
-                    value="1.2"
+                    value={stats.total_storage.toFixed(1)}
                     unit="TB"
                     icon={HardDrive}
-                    trend={-4}
+                    trend={stats.trend_storage}
                     color="var(--secondary)"
                 />
                 <ResourceCard
                     title="Egress Traffic"
-                    value="892"
+                    value={stats.total_egress.toFixed(0)}
                     unit="GB/mo"
                     icon={Network}
                     trend={28}
@@ -47,7 +73,7 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                 />
                 <ResourceCard
                     title="Active Tenants"
-                    value="14"
+                    value={stats.active_tenants.toString()}
                     unit="units"
                     icon={Users}
                     color="#fbbf24"

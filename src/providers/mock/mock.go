@@ -46,3 +46,8 @@ func (p *MockProvider) GetStatus(ctx context.Context, resourceID string) (string
 	}
 	return status, nil
 }
+
+func (p *MockProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	log.Printf("[MockProvider] Attaching Security Group %s to resource %s. Enforcing firewall rules...", sgID, resourceID)
+	return nil
+}

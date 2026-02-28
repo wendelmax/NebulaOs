@@ -72,3 +72,8 @@ func (p *OpenStackProvider) GetStatus(ctx context.Context, resourceID string) (s
 
 	return server.Status, nil
 }
+func (p *OpenStackProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	// Mock implementation for now
+	fmt.Printf("[OpenStack] Attaching Security Group %s to server %s\n", sgID, resourceID)
+	return nil
+}

@@ -1,6 +1,6 @@
-import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag, Map, Brain } from 'lucide-react';
 
-export type TabType = 'overview' | 'resources' | 'storage' | 'governance' | 'observability' | 'networking' | 'billing' | 'settings' | 'marketplace';
+export type TabType = 'overview' | 'resources' | 'storage' | 'governance' | 'observability' | 'networking' | 'billing' | 'settings' | 'marketplace' | 'global' | 'advisor';
 
 interface SidebarItemProps {
     icon: any;
@@ -69,7 +69,9 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, on
                     <SidebarItem icon={Activity} label="Observability" active={activeTab === 'observability'} onClick={() => onTabChange('observability')} />
                     <SidebarItem icon={Receipt} label="Billing & usage" active={activeTab === 'billing'} onClick={() => onTabChange('billing')} />
                     <SidebarItem icon={Globe} label="Networking" active={activeTab === 'networking'} onClick={() => onTabChange('networking')} />
+                    <SidebarItem icon={Map} label="Global Map" active={activeTab === 'global'} onClick={() => onTabChange('global')} />
                     <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => onTabChange('marketplace')} />
+                    <SidebarItem icon={Brain} label="AI Advisor" active={activeTab === 'advisor'} onClick={() => onTabChange('advisor')} />
                     <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
                 </nav>
 

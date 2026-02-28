@@ -27,6 +27,11 @@ type CloudProvider interface {
 	Provision(ctx context.Context, resource *Resource) error
 	Decommission(ctx context.Context, resource *Resource) error
 	GetStatus(ctx context.Context, resourceID string) (string, error)
+	AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error
+}
+
+type ProviderFactory interface {
+	GetProvider(name string) (CloudProvider, error)
 }
 
 type NetworkProvider interface {
@@ -90,4 +95,14 @@ type SecurityGroupRepository interface {
 	ListByProject(ctx context.Context, projectID string) ([]*SecurityGroup, error)
 	AddRule(ctx context.Context, sgID string, rule FirewallRule) error
 	RemoveRule(ctx context.Context, sgID string, ruleID string) error
+}
+
+type GSLBRepository interface {
+	Save(ctx context.Context, endpoint *GlobalEndpoint) error
+	GetByID(ctx context.Context, id string) (*GlobalEndpoint, error)
+	List(ctx context.Context) ([]*GlobalEndpoint, error)
+}
+
+type ResourceAdvisor interface {
+	AnalyzeUsage(ctx context.Context, projectID string) ([]ResourceInsight, error)
 }

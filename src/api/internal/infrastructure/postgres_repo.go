@@ -141,25 +141,25 @@ func NewPostgresResourceRepository(db *sql.DB) *PostgresResourceRepository {
 
 func (r *PostgresResourceRepository) Create(ctx context.Context, res *domain.Resource) error {
 	metadataJSON, _ := json.Marshal(res.Metadata)
-	query := `INSERT INTO resources (id, project_id, type, provider, state, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := r.db.ExecContext(ctx, query, res.ID, res.ProjectID, res.Type, res.Provider, res.State, metadataJSON, res.CreatedAt)
+	query := `INSERT INTO resources (id, project_id, type, provider, state, metadata, blueprint_id, security_groups, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	_, err := r.db.ExecContext(ctx, query, res.ID, res.ProjectID, res.Type, res.Provider, res.State, metadataJSON, res.BlueprintID, pq.Array(res.SecurityGroups), res.CreatedAt)
 	return err
 }
 
 func (r *PostgresResourceRepository) GetByID(ctx context.Context, id string) (*domain.Resource, error) {
-	query := `SELECT id, project_id, type, provider, state, metadata, created_at FROM resources WHERE id = $1`
-	row := r.db.QueryRowContext(ctx, query, id)
+	query := `SELECT id, project_id, type, provider, state, metadata, blueprint_id, security_groups, created_at FROM resources WHERE id = $1`
 	var res domain.Resource
-	var metadataBlob []byte
-	if err := row.Scan(&res.ID, &res.ProjectID, &res.Type, &res.Provider, &res.State, &metadataBlob, &res.CreatedAt); err != nil {
+	var metadataJSON []byte
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&res.ID, &res.ProjectID, &res.Type, &res.Provider, &res.State, &metadataJSON, &res.BlueprintID, pq.Array(&res.SecurityGroups), &res.CreatedAt)
+	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(metadataBlob, &res.Metadata)
+	json.Unmarshal(metadataJSON, &res.Metadata)
 	return &res, nil
 }
 
 func (r *PostgresResourceRepository) GetByProject(ctx context.Context, projectID string) ([]*domain.Resource, error) {
-	query := `SELECT id, project_id, type, provider, state, metadata, created_at FROM resources WHERE project_id = $1`
+	query := `SELECT id, project_id, type, provider, state, metadata, blueprint_id, security_groups, created_at FROM resources WHERE project_id = $1`
 	rows, err := r.db.QueryContext(ctx, query, projectID)
 	if err != nil {
 		return nil, err
@@ -169,11 +169,11 @@ func (r *PostgresResourceRepository) GetByProject(ctx context.Context, projectID
 	var resources []*domain.Resource
 	for rows.Next() {
 		var res domain.Resource
-		var metadataBlob []byte
-		if err := rows.Scan(&res.ID, &res.ProjectID, &res.Type, &res.Provider, &res.State, &metadataBlob, &res.CreatedAt); err != nil {
+		var metadataJSON []byte
+		if err := rows.Scan(&res.ID, &res.ProjectID, &res.Type, &res.Provider, &res.State, &metadataJSON, &res.BlueprintID, pq.Array(&res.SecurityGroups), &res.CreatedAt); err != nil {
 			return nil, err
 		}
-		json.Unmarshal(metadataBlob, &res.Metadata)
+		json.Unmarshal(metadataJSON, &res.Metadata)
 		resources = append(resources, &res)
 	}
 	return resources, nil
@@ -511,4 +511,48 @@ func (r *PostgresBlueprintRepository) List(ctx context.Context) ([]*domain.Bluep
 		blueprints = append(blueprints, &b)
 	}
 	return blueprints, nil
+}
+
+// --- GSLB Repository ---
+
+type PostgresGSLBRepository struct {
+	db *sql.DB
+}
+
+func NewPostgresGSLBRepository(db *sql.DB) *PostgresGSLBRepository {
+	return &PostgresGSLBRepository{db: db}
+}
+
+func (r *PostgresGSLBRepository) Save(ctx context.Context, ep *domain.GlobalEndpoint) error {
+	query := `INSERT INTO gslb_endpoints (id, name, dns_record, strategy, endpoints, state) 
+              VALUES ($1, $2, $3, $4, $5, $6) 
+              ON CONFLICT (id) DO UPDATE SET state = $6`
+	_, err := r.db.ExecContext(ctx, query, ep.ID, ep.Name, ep.DNSRecord, ep.Policy.Strategy, pq.Array(ep.Endpoints), ep.State)
+	return err
+}
+
+func (r *PostgresGSLBRepository) GetByID(ctx context.Context, id string) (*domain.GlobalEndpoint, error) {
+	query := `SELECT id, name, dns_record, strategy, endpoints, state FROM gslb_endpoints WHERE id = $1`
+	var ep domain.GlobalEndpoint
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&ep.ID, &ep.Name, &ep.DNSRecord, &ep.Policy.Strategy, pq.Array(&ep.Endpoints), &ep.State)
+	return &ep, err
+}
+
+func (r *PostgresGSLBRepository) List(ctx context.Context) ([]*domain.GlobalEndpoint, error) {
+	query := `SELECT id, name, dns_record, strategy, endpoints, state FROM gslb_endpoints`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []*domain.GlobalEndpoint
+	for rows.Next() {
+		var ep domain.GlobalEndpoint
+		if err := rows.Scan(&ep.ID, &ep.Name, &ep.DNSRecord, &ep.Policy.Strategy, pq.Array(&ep.Endpoints), &ep.State); err != nil {
+			return nil, err
+		}
+		list = append(list, &ep)
+	}
+	return list, nil
 }

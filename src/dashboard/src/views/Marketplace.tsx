@@ -2,12 +2,35 @@ import React from 'react';
 import { Box, Database, ShieldCheck, Zap } from 'lucide-react';
 
 const Marketplace: React.FC = () => {
+    const [deploying, setDeploying] = React.useState<string | null>(null);
+
     const blueprints = [
         { id: 'bp-1', name: 'K8s Cluster', desc: 'Secure, multi-zone Kubernetes control plane.', cat: 'Infrastructure', icon: Box },
         { id: 'bp-2', name: 'Postgres High-Availability', desc: 'Managed DB with auto-failover and backups.', cat: 'Databases', icon: Database },
         { id: 'bp-3', name: 'Nebula Firewall Edge', desc: 'DDoS protection and advanced WAF.', cat: 'Security', icon: ShieldCheck },
         { id: 'bp-4', name: 'Redis Cache', desc: 'Low-latency in-memory data store.', cat: 'Cache', icon: Zap }
     ];
+
+    const handleDeploy = async (bpId: string) => {
+        setDeploying(bpId);
+        try {
+            const resp = await fetch('http://api.nebula.local/marketplace/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    blueprint_id: bpId,
+                    project_id: 'proj-default' // Mock or from context
+                })
+            });
+            if (resp.ok) {
+                alert('Deployment started successfully!');
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setDeploying(null);
+        }
+    };
 
     return (
         <div className="view-container animate-fade-in">
@@ -35,8 +58,13 @@ const Marketplace: React.FC = () => {
                             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                                 {bp.desc}
                             </p>
-                            <button className="btn-primary" style={{ marginTop: 'auto', padding: '0.75rem', fontSize: '0.9rem' }}>
-                                Deploy Blueprint
+                            <button
+                                className="btn-primary"
+                                style={{ marginTop: 'auto', padding: '0.75rem', fontSize: '0.9rem' }}
+                                onClick={() => handleDeploy(bp.id)}
+                                disabled={deploying === bp.id}
+                            >
+                                {deploying === bp.id ? 'Deploying...' : 'Deploy Blueprint'}
                             </button>
                         </div>
                     );

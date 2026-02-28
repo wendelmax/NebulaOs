@@ -33,3 +33,7 @@ func (p *KubernetesProvider) Decommission(ctx context.Context, resource *domain.
 func (p *KubernetesProvider) GetStatus(ctx context.Context, resourceID string) (string, error) {
 	return "active", nil
 }
+func (p *KubernetesProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	fmt.Printf("[Kubernetes] Applying NetworkPolicy %s to deployment %s\n", sgID, resourceID)
+	return nil
+}

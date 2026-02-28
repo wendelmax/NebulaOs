@@ -100,6 +100,7 @@ func main() {
 	var securityGroupRepo domain.SecurityGroupRepository
 	var tfStateRepo domain.TerraformStateRepository
 	var blueprintRepo domain.BlueprintRepository
+	var gslbRepo domain.GSLBRepository
 
 	if dbURL != "" {
 		fmt.Println("Initializing PostgreSQL persistence layer...")
@@ -117,6 +118,7 @@ func main() {
 		securityGroupRepo = infrastructure.NewPostgresSecurityGroupRepository(db)
 		tfStateRepo = infrastructure.NewPostgresTerraformStateRepository(db)
 		blueprintRepo = infrastructure.NewPostgresBlueprintRepository(db)
+		gslbRepo = infrastructure.NewPostgresGSLBRepository(db)
 	} else {
 		fmt.Println("Initializing In-Memory repositories (Development Mode)...")
 		tenantRepo = infrastructure.NewInMemoryTenantRepository()
@@ -129,6 +131,7 @@ func main() {
 		securityGroupRepo = infrastructure.NewInMemorySecurityGroupRepository()
 		tfStateRepo = infrastructure.NewInMemoryTerraformStateRepository()
 		blueprintRepo = infrastructure.NewInMemoryBlueprintRepository()
+		gslbRepo = infrastructure.NewInMemoryGSLBRepository()
 	}
 
 	fmt.Printf("Repositories initialized (Persistence: %v)\n", dbURL != "")
@@ -138,7 +141,9 @@ func main() {
 
 	// Services
 	policyService := services.NewSovereignPolicyService(policyRepo)
-	billingMgr := infrastructure.NewSovereignBillingManager(resourceRepo, volumeRepo, bucketRepo)
+	billingMgr := infrastructure.NewSovereignBillingManager(resourceRepo, volumeRepo, bucketRepo, tenantRepo)
+	gslbManager := services.NewGSLBManager(gslbRepo)
+	aiAdvisor := services.NewAIResourceAdvisor(resourceRepo)
 
 	// Dependency Injection - Use Cases
 	createTenantUC := usecase.NewCreateTenantUseCase(tenantRepo)
@@ -161,6 +166,7 @@ func main() {
 	createBlueprintUC := usecase.NewCreateBlueprintUseCase(blueprintRepo)
 
 	createResourceUC := usecase.NewCreateResourceUseCase(resourceRepo, projectRepo, quotaRepo, policyService, providerFactory)
+	deployBlueprintUC := usecase.NewDeployBlueprintUseCase(blueprintRepo, resourceRepo, providerFactory)
 	getResourceUC := usecase.NewGetResourceUseCase(resourceRepo)
 	listResourcesUC := usecase.NewListResourcesByProjectUseCase(resourceRepo)
 
@@ -336,12 +342,75 @@ func main() {
 		}
 	})))
 
-	// Apply metrics to ALL routes
+	mux.Handle("/marketplace/deploy", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var input usecase.DeployBlueprintInput
+		json.NewDecoder(r.Body).Decode(&input)
+		if err := deployBlueprintUC.Execute(r.Context(), input); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"message": "Deployment initiated"})
+	})))
+
+	// Phase 14: Global Orchestration & AI
+	mux.Handle("/network/gslb", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			var ep domain.GlobalEndpoint
+			json.NewDecoder(r.Body).Decode(&ep)
+			if ep.ID == "" {
+				ep.ID = domain.NewID()
+			}
+			if err := gslbManager.CreateEndpoint(r.Context(), &ep); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(ep)
+		} else {
+			eps, _ := gslbManager.ListEndpoints(r.Context())
+			json.NewEncoder(w).Encode(eps)
+		}
+	})))
+
+	mux.Handle("/intelligence/advisor", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		projectID := r.URL.Query().Get("project_id")
+		insights, err := aiAdvisor.AnalyzeUsage(r.Context(), projectID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(insights)
+	})))
+
+	mux.Handle("/intelligence/stats", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		stats, err := billingMgr.GetGlobalStats(r.Context())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(stats)
+	})))
+
 	handlerWithMetrics := metricsMiddleware.Metrics(mux)
+
+	// Apply CORS as the absolute outermost layer
+	corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		handlerWithMetrics.ServeHTTP(w, r)
+	})
 
 	port := getEnv("PORT", "8000")
 	fmt.Printf("NebulaOS API listening on :%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, handlerWithMetrics))
+	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
 }
 
 func getEnv(key, fallback string) string {

@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import DashboardShell from './components/DashboardShell';
 import type { TabType } from './components/DashboardShell';
 import Overview from './views/Overview';
+import ResourcesView from './views/ResourcesView';
 import StorageView from './views/StorageView';
 import GovernanceView from './views/GovernanceView';
 import ObservabilityView from './views/ObservabilityView';
 import BillingView from './views/BillingView';
 import Marketplace from './views/Marketplace';
 import Networking from './views/Networking';
+import GlobalTopology from './views/GlobalTopology';
+import AIAdvisor from './views/AIAdvisor';
+import SettingsView from './views/SettingsView';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -23,6 +27,8 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'overview':
         return <Overview theme={theme} />;
+      case 'resources':
+        return <ResourcesView />;
       case 'storage':
         return <StorageView />;
       case 'governance':
@@ -35,6 +41,12 @@ const App: React.FC = () => {
         return <Networking />;
       case 'marketplace':
         return <Marketplace />;
+      case 'global':
+        return <GlobalTopology />;
+      case 'advisor':
+        return <AIAdvisor />;
+      case 'settings':
+        return <SettingsView />;
       default:
         return (
           <div className="glass p-12 text-center">

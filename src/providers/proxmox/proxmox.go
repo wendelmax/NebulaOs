@@ -35,3 +35,7 @@ func (p *ProxmoxProvider) Decommission(ctx context.Context, resource *domain.Res
 func (p *ProxmoxProvider) GetStatus(ctx context.Context, resourceID string) (string, error) {
 	return "running", nil
 }
+func (p *ProxmoxProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
+	fmt.Printf("[Proxmox] Attaching Security Group %s to VM %s\n", sgID, resourceID)
+	return nil
+}

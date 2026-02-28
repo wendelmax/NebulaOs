@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS resources (
     provider TEXT NOT NULL,
     state TEXT NOT NULL,
     metadata JSONB DEFAULT '{}',
+    blueprint_id TEXT,
+    security_groups TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
