@@ -8,7 +8,7 @@ const ResourcesView: React.FC = () => {
     const fetchResources = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://api.nebula.local/resources');
+            const resp = await fetch('http://api.nebula.local/resources?project_id=v-p1');
             if (resp.ok) {
                 const data = await resp.json();
                 setResources(data || []);
