@@ -19,7 +19,7 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
     React.useEffect(() => {
         const fetchStats = async () => {
             try {
-                const resp = await fetch(`http://api.nebula.local/intelligence/stats?t=${Date.now()}`);
+                const resp = await fetch(`http://localhost:8000/intelligence/stats?t=${Date.now()}`);
                 if (resp.ok) {
                     const data = await resp.json();
                     setStats(data);

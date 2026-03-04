@@ -10,8 +10,8 @@ const StorageView: React.FC = () => {
         setLoading(true);
         try {
             const [volResp, buckResp] = await Promise.all([
-                fetch('http://api.nebula.local/storage/volumes?project_id=v-p1'),
-                fetch('http://api.nebula.local/storage/buckets?project_id=v-p1')
+                fetch('http://localhost:8000/storage/volumes?project_id=v-p1'),
+                fetch('http://localhost:8000/storage/buckets?project_id=v-p1')
             ]);
 
             if (volResp.ok) {

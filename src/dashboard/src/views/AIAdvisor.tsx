@@ -8,7 +8,7 @@ const AIAdvisor: React.FC = () => {
     const fetchInsights = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://api.nebula.local/intelligence/advisor?project_id=v-p1');
+            const resp = await fetch('http://localhost:8000/intelligence/advisor?project_id=v-p1');
             if (resp.ok) {
                 const data = await resp.json();
                 setInsights(data || []);

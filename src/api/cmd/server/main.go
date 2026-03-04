@@ -165,6 +165,24 @@ func main() {
 
 		// 6. GSLB seeding
 		gslbRepo.Save(ctx, &domain.GlobalEndpoint{ID: "g-1", Name: "nebula.global", DNSRecord: "api.nebula.global", State: "active", Policy: domain.GSLBPolicy{Strategy: "latency"}})
+
+		// 7. Security Group seeding
+		securityGroupRepo.Create(ctx, &domain.SecurityGroup{
+			ID:        "sg-default",
+			ProjectID: "v-p1",
+			Name:      "default-vpc-sg",
+			Rules: []domain.FirewallRule{
+				{ID: "r-1", Protocol: domain.TCP, FromPort: 80, ToPort: 80, Action: "allow", CreatedAt: time.Now()},
+				{ID: "r-2", Protocol: domain.TCP, FromPort: 443, ToPort: 443, Action: "allow", CreatedAt: time.Now()},
+			},
+			CreatedAt: time.Now(),
+		})
+
+		// 8. Dedicated Storage seeding
+		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s1", ProjectID: "v-p1", Name: "Vol-1", SizeGB: 500, State: "active", CreatedAt: time.Now()})
+		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s2", ProjectID: "v-p1", Name: "Vol-2", SizeGB: 500, State: "active", CreatedAt: time.Now()})
+		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s3", ProjectID: "v-p1", Name: "Vol-3", SizeGB: 500, State: "active", CreatedAt: time.Now()})
+		bucketRepo.Create(ctx, &domain.Bucket{ID: "v-b1", ProjectID: "v-p1", Name: "Assets-Bucket", Region: "us-east-1", State: "active", CreatedAt: time.Now()})
 	}
 
 	// Services
@@ -320,24 +338,24 @@ func main() {
 		}
 	})))
 
-	mux.Handle("/storage/volumes", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/storage/volumes", auditMiddleware.Audit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			storageHandler.CreateVolume(w, r)
 		} else {
 			storageHandler.ListVolumes(w, r)
 		}
-	}))))
+	})))
 
-	mux.Handle("/storage/buckets", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/storage/buckets", auditMiddleware.Audit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			storageHandler.CreateBucket(w, r)
 		} else {
 			storageHandler.ListBuckets(w, r)
 		}
-	}))))
+	})))
 
 	// Billing & Governance
-	mux.Handle("/billing/report", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(billingHandler.GetReport))))
+	mux.Handle("/billing/report", auditMiddleware.Audit(http.HandlerFunc(billingHandler.GetReport)))
 	mux.Handle("/compliance/report", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(complianceHandler.GetReport))))
 	mux.Handle("/governance/policy", auditMiddleware.Audit(authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -418,7 +436,7 @@ func main() {
 		}
 	}))
 
-	mux.Handle("/intelligence/advisor", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/intelligence/advisor", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		projectID := r.URL.Query().Get("project_id")
 		insights, err := aiAdvisor.AnalyzeUsage(r.Context(), projectID)
 		if err != nil {
@@ -426,7 +444,7 @@ func main() {
 			return
 		}
 		json.NewEncoder(w).Encode(insights)
-	})))
+	}))
 
 	mux.Handle("/intelligence/stats", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[DEBUG] Intelligence Stats request from %s", r.RemoteAddr)

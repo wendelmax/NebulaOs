@@ -8,7 +8,7 @@ const BillingView: React.FC = () => {
     const fetchReport = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://api.nebula.local/billing/report?tenant_id=v-t1');
+            const resp = await fetch('http://localhost:8000/billing/report?tenant_id=v-t1');
             if (resp.ok) {
                 const data = await resp.json();
                 setReport(data);

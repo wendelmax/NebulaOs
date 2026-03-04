@@ -10,8 +10,8 @@ const Networking: React.FC = () => {
         setLoading(true);
         try {
             const [sgResp, gslbResp] = await Promise.all([
-                fetch('http://api.nebula.local/security-groups?project_id=v-p1'),
-                fetch('http://api.nebula.local/network/gslb')
+                fetch('http://localhost:8000/security-groups?project_id=v-p1'),
+                fetch('http://localhost:8000/network/gslb')
             ]);
 
             if (sgResp.ok) {

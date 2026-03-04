@@ -9,7 +9,7 @@ const Marketplace: React.FC = () => {
     const fetchBlueprints = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://api.nebula.local/marketplace/blueprints');
+            const resp = await fetch('http://localhost:8000/marketplace/blueprints');
             if (resp.ok) {
                 const data = await resp.json();
                 setBlueprints(data || []);
@@ -28,7 +28,7 @@ const Marketplace: React.FC = () => {
     const handleDeploy = async (bpId: string) => {
         setDeploying(bpId);
         try {
-            const resp = await fetch('http://api.nebula.local/marketplace/deploy', {
+            const resp = await fetch('http://localhost:8000/marketplace/deploy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
