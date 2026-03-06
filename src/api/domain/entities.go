@@ -1,14 +1,14 @@
 package domain
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"time"
 )
 
 func NewID() string {
 	b := make([]byte, 8)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }
 

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS quotas (
 
 CREATE TABLE IF NOT EXISTS volumes (
     id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id),
     name TEXT NOT NULL,
     size INTEGER NOT NULL,
     state TEXT NOT NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS volumes (
 
 CREATE TABLE IF NOT EXISTS buckets (
     id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id),
     name TEXT NOT NULL,
     state TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

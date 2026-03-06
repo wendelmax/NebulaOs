@@ -26,6 +26,7 @@ export const api = {
     getResources: () => client.get('/resources'),
     createResource: (data: any) => client.post('/resources', data),
     getNetworkStatus: (domain: string) => client.get(`/network/certificate?domain=${domain}`),
+    getStats: () => client.get('/intelligence/stats'),
 };
 
 export default client;

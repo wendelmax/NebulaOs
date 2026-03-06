@@ -54,7 +54,7 @@ func (uc *CreateResourceUseCase) Execute(ctx context.Context, input CreateResour
 	}
 
 	// 3. Calculate current usage (Simplified: count resources as units)
-	existingResources, err := uc.resourceRepo.List(ctx)
+	projectResources, err := uc.resourceRepo.GetByProject(ctx, input.ProjectID)
 	if err != nil {
 		return err
 	}
@@ -64,14 +64,12 @@ func (uc *CreateResourceUseCase) Execute(ctx context.Context, input CreateResour
 	totalRAM := 0
 	totalDisk := 0
 
-	for _, res := range existingResources {
-		if res.ProjectID == input.ProjectID {
-			// In a real system, we'd extract CPU/RAM from resource metadata
-			// For this demo, let's assume each resource uses 1 CPU, 2GB RAM, 20GB Disk
-			totalCPUs += 1
-			totalRAM += 2048
-			totalDisk += 20
-		}
+	for range projectResources {
+		// In a real system, we'd extract CPU/RAM from resource metadata
+		// For this demo, let's assume each resource uses 1 CPU, 2GB RAM, 20GB Disk
+		totalCPUs += 1
+		totalRAM += 2048
+		totalDisk += 20
 	}
 
 	if totalCPUs+1 > quota.MaxCPUs || totalRAM+2048 > quota.MaxRAM || totalDisk+20 > quota.MaxDisk {

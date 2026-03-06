@@ -247,25 +247,24 @@ func NewPostgresVolumeRepository(db *sql.DB) *PostgresVolumeRepository {
 }
 
 func (r *PostgresVolumeRepository) Create(ctx context.Context, v *domain.Volume) error {
-	query := `INSERT INTO volumes (id, name, size, state, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.db.ExecContext(ctx, query, v.ID, v.Name, v.SizeGB, v.State, v.CreatedAt)
+	query := `INSERT INTO volumes (id, project_id, name, size, state, created_at) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.db.ExecContext(ctx, query, v.ID, v.ProjectID, v.Name, v.SizeGB, v.State, v.CreatedAt)
 	return err
 }
 
 func (r *PostgresVolumeRepository) GetByID(ctx context.Context, id string) (*domain.Volume, error) {
-	query := `SELECT id, name, size, state, created_at FROM volumes WHERE id = $1`
+	query := `SELECT id, project_id, name, size, state, created_at FROM volumes WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 	var v domain.Volume
-	if err := row.Scan(&v.ID, &v.Name, &v.SizeGB, &v.State, &v.CreatedAt); err != nil {
+	if err := row.Scan(&v.ID, &v.ProjectID, &v.Name, &v.SizeGB, &v.State, &v.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &v, nil
 }
 
 func (r *PostgresVolumeRepository) ListByProject(ctx context.Context, projectID string) ([]*domain.Volume, error) {
-	// Note: project_id column missing in schema, let's assume it should be there for project-aware listing
-	query := `SELECT id, name, size, state, created_at FROM volumes`
-	rows, err := r.db.QueryContext(ctx, query)
+	query := `SELECT id, project_id, name, size, state, created_at FROM volumes WHERE project_id = $1`
+	rows, err := r.db.QueryContext(ctx, query, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +273,7 @@ func (r *PostgresVolumeRepository) ListByProject(ctx context.Context, projectID 
 	var volumes []*domain.Volume
 	for rows.Next() {
 		var v domain.Volume
-		if err := rows.Scan(&v.ID, &v.Name, &v.SizeGB, &v.State, &v.CreatedAt); err != nil {
+		if err := rows.Scan(&v.ID, &v.ProjectID, &v.Name, &v.SizeGB, &v.State, &v.CreatedAt); err != nil {
 			return nil, err
 		}
 		volumes = append(volumes, &v)
@@ -293,24 +292,24 @@ func NewPostgresBucketRepository(db *sql.DB) *PostgresBucketRepository {
 }
 
 func (r *PostgresBucketRepository) Create(ctx context.Context, b *domain.Bucket) error {
-	query := `INSERT INTO buckets (id, name, state, created_at) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.ExecContext(ctx, query, b.ID, b.Name, b.State, b.CreatedAt)
+	query := `INSERT INTO buckets (id, project_id, name, state, created_at) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.ExecContext(ctx, query, b.ID, b.ProjectID, b.Name, b.State, b.CreatedAt)
 	return err
 }
 
 func (r *PostgresBucketRepository) GetByID(ctx context.Context, id string) (*domain.Bucket, error) {
-	query := `SELECT id, name, state, created_at FROM buckets WHERE id = $1`
+	query := `SELECT id, project_id, name, state, created_at FROM buckets WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 	var b domain.Bucket
-	if err := row.Scan(&b.ID, &b.Name, &b.State, &b.CreatedAt); err != nil {
+	if err := row.Scan(&b.ID, &b.ProjectID, &b.Name, &b.State, &b.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &b, nil
 }
 
 func (r *PostgresBucketRepository) ListByProject(ctx context.Context, projectID string) ([]*domain.Bucket, error) {
-	query := `SELECT id, name, state, created_at FROM buckets`
-	rows, err := r.db.QueryContext(ctx, query)
+	query := `SELECT id, project_id, name, state, created_at FROM buckets WHERE project_id = $1`
+	rows, err := r.db.QueryContext(ctx, query, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +318,7 @@ func (r *PostgresBucketRepository) ListByProject(ctx context.Context, projectID 
 	var buckets []*domain.Bucket
 	for rows.Next() {
 		var b domain.Bucket
-		if err := rows.Scan(&b.ID, &b.Name, &b.State, &b.CreatedAt); err != nil {
+		if err := rows.Scan(&b.ID, &b.ProjectID, &b.Name, &b.State, &b.CreatedAt); err != nil {
 			return nil, err
 		}
 		buckets = append(buckets, &b)

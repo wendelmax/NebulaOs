@@ -1,13 +1,23 @@
 import React from 'react';
+import { api } from '../api/client';
 import ResourceCard from '../components/ResourceCard';
 import { Cpu, HardDrive, Network, Users, LayoutDashboard } from 'lucide-react';
+
+interface GlobalStats {
+    total_cpus: number;
+    total_storage: number;
+    total_egress: number;
+    active_tenants: number;
+    trend_cpus: number;
+    trend_storage: number;
+}
 
 interface OverviewProps {
     theme?: 'dark' | 'light';
 }
 
 const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
-    const [stats, setStats] = React.useState<any>({
+    const [stats, setStats] = React.useState<GlobalStats>({
         total_cpus: 0,
         total_storage: 0,
         total_egress: 0,
@@ -19,11 +29,12 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
     React.useEffect(() => {
         const fetchStats = async () => {
             try {
-                const resp = await fetch(`http://localhost:8000/intelligence/stats?t=${Date.now()}`);
-                if (resp.ok) {
-                    const data = await resp.json();
-                    setStats(data);
-                }
+                // In a real app, we might add a generic stats endpoint to the api client
+                // For now, let's assume we can add it or use a manual axios call if not present
+                // But the plan says "Use the central api client"
+                // Let's check client.ts again to see if I can add getStats there.
+                const resp = await api.getStats();
+                setStats(resp.data);
             } catch (err) {
                 console.error("Failed to fetch stats", err);
             }
