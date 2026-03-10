@@ -1,0 +1,45 @@
+#!ipxe
+
+# NebulaOS iPXE Boot Script
+# This script is served to bare metal nodes during the PXE boot process.
+
+set nebula_api http://nebula-api.nebula.local:8000
+set nebula_boot_assets http://nebula-assets.nebula.local
+
+:start
+menu NebulaOS Provisioning System
+item --gap --             ------------------------- Hardware Control -------------------------
+item register             Register Node with NebulaOS
+item provision            Auto-Provision Node
+item shell                Drop to iPXE shell
+item exit                 Exit iPXE and continue boot
+choose --default provision --timeout 3000 target || goto exit
+
+goto ${target}
+
+:register
+echo Registering node with NebulaOS...
+# In a real scenario, we would POST the MAC address and hardware profile to the API
+# For now, we simulate the call
+echo MAC Address: ${net0/mac}
+# chain ${nebula_api}/api/baremetal/register?mac=${net0/mac}
+goto start
+
+:provision
+echo Provisioning via NebulaOS...
+# Load the Linux kernel and initrd specified by the orchestrator
+# Example:
+# kernel ${nebula_boot_assets}/vmlinuz initrd=initrd.img ip=dhcp nebula_api=${nebula_api}
+# initrd ${nebula_boot_assets}/initrd.img
+# boot
+echo [Nebula] Loading default OS image...
+sleep 2
+echo [Nebula] Booting...
+goto start
+
+:shell
+shell
+goto start
+
+:exit
+exit

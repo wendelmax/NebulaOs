@@ -12,6 +12,7 @@ type ProjectRepository interface {
 	Create(ctx context.Context, project *Project) error
 	GetByID(ctx context.Context, id string) (*Project, error)
 	GetByTenant(ctx context.Context, tenantID string) ([]*Project, error)
+	GetByDepartment(ctx context.Context, deptID string) ([]*Project, error)
 	List(ctx context.Context) ([]*Project, error)
 }
 
@@ -83,6 +84,7 @@ type BucketRepository interface {
 
 type BillingManager interface {
 	GenerateReport(ctx context.Context, tenantID string) (*BillingReport, error)
+	GetGlobalStats(ctx context.Context) (*GlobalStats, error)
 }
 
 type PolicyService interface {
@@ -124,6 +126,41 @@ type AvailabilityZoneRepository interface {
 	Create(ctx context.Context, az *AvailabilityZone) error
 	GetByRegion(ctx context.Context, regionID string) ([]*AvailabilityZone, error)
 	List(ctx context.Context) ([]*AvailabilityZone, error)
+}
+
+type ProviderRepository interface {
+	Create(ctx context.Context, provider *Provider) error
+	GetByID(ctx context.Context, id string) (*Provider, error)
+	List(ctx context.Context) ([]*Provider, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type UserRepository interface {
+	Create(ctx context.Context, user *User) error
+	GetByUsername(ctx context.Context, username string) (*User, error)
+	GetByID(ctx context.Context, id string) (*User, error)
+	Update(ctx context.Context, user *User) error
+}
+
+type OrganizationRepository interface {
+	Create(ctx context.Context, o *Organization) error
+	GetByID(ctx context.Context, id string) (*Organization, error)
+	List(ctx context.Context) ([]*Organization, error)
+}
+
+type DepartmentRepository interface {
+	Create(ctx context.Context, d *Department) error
+	GetByID(ctx context.Context, id string) (*Department, error)
+	GetByOrganization(ctx context.Context, orgID string) ([]*Department, error)
+}
+
+type BareMetalRepository interface {
+	Create(ctx context.Context, n *BareMetalNode) error
+	GetByID(ctx context.Context, id string) (*BareMetalNode, error)
+	List(ctx context.Context) ([]*BareMetalNode, error)
+	Update(ctx context.Context, n *BareMetalNode) error
+	AddLog(ctx context.Context, l *ProvisioningLog) error
+	GetLogs(ctx context.Context, nodeID string) ([]*ProvisioningLog, error)
 }
 
 type HealthCheck interface {

@@ -89,3 +89,53 @@ CREATE TABLE IF NOT EXISTS blueprints (
     variables JSONB NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT,
+    tenant_id TEXT REFERENCES tenants(id),
+    must_change_password BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS organizations (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS departments (
+    id TEXT PRIMARY KEY,
+    organization_id TEXT REFERENCES organizations(id),
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Update projects to support department hierarchy
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS department_id TEXT;
+
+CREATE TABLE IF NOT EXISTS bare_metal_nodes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    mac TEXT UNIQUE NOT NULL,
+    ipmi_address TEXT,
+    ipmi_user TEXT,
+    ipmi_password TEXT,
+    cpu_cores INTEGER,
+    memory_gb INTEGER,
+    disk_gb INTEGER,
+    department_id TEXT,
+    state TEXT NOT NULL,
+    provider_id TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS provisioning_logs (
+    id TEXT PRIMARY KEY,
+    node_id TEXT REFERENCES bare_metal_nodes(id),
+    message TEXT NOT NULL,
+    level TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

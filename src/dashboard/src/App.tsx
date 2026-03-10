@@ -12,10 +12,16 @@ import Networking from './views/Networking';
 import GlobalTopology from './views/GlobalTopology';
 import AIAdvisor from './views/AIAdvisor';
 import SettingsView from './views/SettingsView';
+import LoginView from './views/LoginView';
+import ChangePasswordView from './views/ChangePasswordView';
+import HierarchyView from './views/HierarchyView';
+import BareMetalView from './views/BareMetalView';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('nebula_token'));
+  const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
 
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -23,10 +29,21 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+  const handleLogin = (token: string, mustChange: boolean) => {
+    localStorage.setItem('nebula_token', token);
+    setMustChangePassword(mustChange);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('nebula_token');
+    setIsAuthenticated(false);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <Overview theme={theme} />;
+        return <Overview />;
       case 'resources':
         return <ResourcesView />;
       case 'storage':
@@ -47,6 +64,10 @@ const App: React.FC = () => {
         return <AIAdvisor />;
       case 'settings':
         return <SettingsView />;
+      case 'hierarchy':
+        return <HierarchyView />;
+      case 'baremetal':
+        return <BareMetalView />;
       default:
         return (
           <div className="glass p-12 text-center">
@@ -59,12 +80,21 @@ const App: React.FC = () => {
     }
   };
 
+  if (!isAuthenticated) {
+    return <LoginView onLogin={handleLogin} />;
+  }
+
+  if (mustChangePassword) {
+    return <ChangePasswordView onComplete={() => setMustChangePassword(false)} />;
+  }
+
   return (
     <DashboardShell
       activeTab={activeTab}
       onTabChange={setActiveTab}
       theme={theme}
       onToggleTheme={toggleTheme}
+      onLogout={handleLogout}
     >
       {renderContent()}
     </DashboardShell>

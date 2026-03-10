@@ -4,12 +4,16 @@ NebulaOS is a sovereign cloud management platform designed for high-performance,
 
 ## Features
 
+- **Enterprise Hierarchy**: High-level Organization and Department management for multi-tenant scaling.
+- **Bare Metal Orchestration**: Centralized physical node inventory with iPXE/Redfish automation.
+- **One-Click Startup**: Automated platform bootstrap via `nebula.sh`.
 - **Live Infrastructure Telemetry**: Real-time stats for CPU, Storage, and Tenant activity.
 - **Resource Inventory**: Unified management of cross-provider compute and storage assets.
 - **Network Security & GSLB**: Intelligent multi-region traffic orchestration and VPC firewall management.
 - **Marketplace**: One-click deployment of production-ready blueprints (K8s, Postgres, etc.).
 - **AI Strategy Advisor**: Operational insights and performance optimization recommendations.
 - **Sovereign Billing**: Transparent cost auditing with tenant-level granularity.
+- **Self-Healing Infrastructure**: Automatic detection and recovery of core platform dependencies.
 
 ## Visual Walkthrough
 
@@ -37,11 +41,27 @@ Seamlessly deploy complex infrastructure stacks using pre-validated blueprints.
 Intelligent insights that help optimize resource utilization and security posture.
 ![AI Advisor](docs/images/ai_advisor.png)
 
+### Enterprise Hierarchy
+Manage multi-tenant organizations and departments with granular isolation and cost tracking.
+![Enterprise](docs/images/enterprise.png)
+
+### Bare Metal Orchestration
+Centralized inventory of physical servers with live iPXE provisioning logs and hardware state tracking.
+![Bare Metal](docs/images/bare_metal.png)
+
 ### Sovereign Billing & Analytics
 Full transparency into infrastructure costs and consumption patterns.
 ![Billing](docs/images/billing.png)
 
-## Development Setup
+## Platform Orchestration
+
+For a complete, one-click production-ready setup:
+```bash
+./nebula.sh
+```
+This script automates infrastructure dependencies (Postgres, NATS), seeds the default Enterprise Org, and starts the API/Dashboard.
+
+## Manual Development Setup
 
 ### Backend (Go)
 ```bash

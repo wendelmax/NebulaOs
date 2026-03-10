@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	github.com/gophercloud/gophercloud v1.14.1
-	github.com/wendelmax/nebulaos/src/providers v0.0.0-00010101000000-000000000000
 	github.com/lib/pq v1.11.2
 	github.com/nats-io/nats.go v1.49.0
+	github.com/wendelmax/nebulaos/src/providers v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -25,11 +25,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7 // indirect
 	github.com/aws/smithy-go v1.24.1 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/nats-io/nkeys v0.4.12 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

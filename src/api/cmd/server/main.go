@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
@@ -34,6 +35,9 @@ import (
 
 func main() {
 	fmt.Println("Starting NebulaOS Cloud API (Phase 11: Production Hardened)...")
+
+	// Infrastructure Self-Healing
+	infrastructureSelfHeal()
 
 	// Configuration
 	natsURL := getEnv("NATS_URL", "nats://localhost:4222")
@@ -85,10 +89,6 @@ func main() {
 	keycloakProvider := keycloak.NewKeycloakProvider(kcURL, "nebula-api")
 	vaultProvider := vault.NewVaultProvider(vaultURL, vaultToken)
 
-	// Middleware
-	metricsMiddleware := middleware.NewMetricsMiddleware()
-	authMiddleware := middleware.NewAuthMiddleware(keycloakProvider)
-	auditMiddleware := middleware.NewAuditMiddleware(nc)
 
 	// Dependency Injection - Repositories
 	var tenantRepo domain.TenantRepository
@@ -104,6 +104,11 @@ func main() {
 	var gslbRepo domain.GSLBRepository
 	var regionRepo domain.RegionRepository
 	var zoneRepo domain.AvailabilityZoneRepository
+	var providerRepo domain.ProviderRepository
+	var userRepo domain.UserRepository
+	var orgRepo domain.OrganizationRepository
+	var deptRepo domain.DepartmentRepository
+	var bmRepo domain.BareMetalRepository
 
 	var db *sql.DB
 	if dbURL != "" {
@@ -124,6 +129,11 @@ func main() {
 		tfStateRepo = infrastructure.NewPostgresTerraformStateRepository(db)
 		blueprintRepo = infrastructure.NewPostgresBlueprintRepository(db)
 		gslbRepo = infrastructure.NewPostgresGSLBRepository(db)
+		providerRepo = infrastructure.NewInMemoryProviderRepository() // Fallback or implement Postgres
+		userRepo = infrastructure.NewPostgresUserRepository(db)
+		orgRepo = infrastructure.NewPostgresOrganizationRepository(db)
+		deptRepo = infrastructure.NewPostgresDepartmentRepository(db)
+		bmRepo = infrastructure.NewPostgresBareMetalRepository(db)
 	} else {
 		fmt.Println("Initializing In-Memory repositories (Development Mode)...")
 		tenantRepo = infrastructure.NewInMemoryTenantRepository()
@@ -132,20 +142,25 @@ func main() {
 		quotaRepo = infrastructure.NewInMemoryQuotaRepository()
 		volumeRepo = infrastructure.NewInMemoryVolumeRepository()
 		bucketRepo = infrastructure.NewInMemoryBucketRepository()
-		policyRepo = infrastructure.NewInMemorySovereigntyPolicyRepository()
-		securityGroupRepo = infrastructure.NewInMemorySecurityGroupRepository()
-		tfStateRepo = infrastructure.NewInMemoryTerraformStateRepository()
-		blueprintRepo = infrastructure.NewInMemoryBlueprintRepository()
-		gslbRepo = infrastructure.NewInMemoryGSLBRepository()
-		regionRepo = infrastructure.NewInMemoryRegionRepository()
-		zoneRepo = infrastructure.NewInMemoryAvailabilityZoneRepository()
+		providerRepo = infrastructure.NewInMemoryProviderRepository()
+		userRepo = infrastructure.NewInMemoryUserRepository()
+		orgRepo = infrastructure.NewInMemoryOrganizationRepository()
+		deptRepo = infrastructure.NewInMemoryDepartmentRepository()
+		bmRepo = infrastructure.NewInMemoryBareMetalRepository()
 
-		// Initial data for in-memory
+		// Initial data for in-memory setup
 		seedCtx := context.Background()
 		regionRepo.Create(seedCtx, &domain.Region{ID: "reg-us-east", Name: "US East (Proxmox Cluster A)", Location: "Virginia", IsDefault: true})
 		regionRepo.Create(seedCtx, &domain.Region{ID: "reg-eu-west", Name: "EU West (OpenStack Lab)", Location: "London"})
 		zoneRepo.Create(seedCtx, &domain.AvailabilityZone{ID: "zone-a", RegionID: "reg-us-east", Name: "Zone A", State: "available"})
+
+		// Seed Providers
+		providerRepo.Create(seedCtx, &domain.Provider{ID: "prov-px-1", Name: "Proxmox Production", Type: domain.ProxmoxProvider, Endpoint: "https://pve.nebula.local/api2/json", Status: "active", CreatedAt: time.Now()})
+		providerRepo.Create(seedCtx, &domain.Provider{ID: "prov-os-1", Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: "http://openstack:5000/v3", Status: "active", CreatedAt: time.Now()})
 	}
+
+	// Seed internal admin user and hierarchy
+	seedEnterpriseDefaults(orgRepo, deptRepo, userRepo)
 
 	fmt.Printf("Repositories initialized (Persistence: %v)\n", dbURL != "")
 	_ = gslbRepo // Explicitly use to avoid lint error until usecases are added
@@ -195,13 +210,31 @@ func main() {
 		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s2", ProjectID: "v-p1", Name: "Vol-2", SizeGB: 500, State: "active", CreatedAt: time.Now()})
 		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s3", ProjectID: "v-p1", Name: "Vol-3", SizeGB: 500, State: "active", CreatedAt: time.Now()})
 		bucketRepo.Create(ctx, &domain.Bucket{ID: "v-b1", ProjectID: "v-p1", Name: "Assets-Bucket", Region: "us-east-1", State: "active", CreatedAt: time.Now()})
+
 	}
+	
+	// Seed internal admin user and hierarchy
+	seedEnterpriseDefaults(orgRepo, deptRepo, userRepo)
+
+	// Choose Identity Manager (Keycloak or Internal)
+	var identityManager domain.IdentityManager
+	if os.Getenv("USE_KEYCLOAK") == "true" {
+		identityManager = keycloakProvider
+	} else {
+		// Default to Internal Identity Manager
+		identityManager = services.NewInternalIdentityManager(userRepo, getEnv("JWT_SECRET", "nebula-secret-key-2026"))
+	}
+
+	authMiddleware := middleware.NewAuthMiddleware(identityManager)
+	auditMiddleware := middleware.NewAuditMiddleware(nc)
+	metricsMiddleware := middleware.NewMetricsMiddleware()
 
 	// Services
 	policyService := services.NewSovereignPolicyService(policyRepo)
 	billingMgr := infrastructure.NewSovereignBillingManager(resourceRepo, volumeRepo, bucketRepo, tenantRepo)
 	gslbManager := services.NewGSLBManager(gslbRepo)
 	aiAdvisor := services.NewAIResourceAdvisor(resourceRepo)
+	bmManager := services.NewBareMetalManager(bmRepo)
 	networkMgr := services.NewNetworkManager(providerFactory)
 	orchestrator := services.NewMetaOrchestrator(providerFactory, networkMgr)
 
@@ -245,12 +278,59 @@ func main() {
 	projectHandler := api.NewProjectHandler(createProjectUC, getProjectUC, listProjectsUC)
 	resourceHandler := api.NewResourceHandler(createResourceUC, getResourceUC, listResourcesUC)
 	storageHandler := api.NewStorageHandler(createVolumeUC, createBucketUC, listVolumesUC, listBucketsUC)
+	bmHandler := api.NewBareMetalHandler(bmManager)
+	hierarchyHandler := api.NewHierarchyHandler(orgRepo, deptRepo)
 	complianceHandler := api.NewComplianceHandler(complianceUC)
 	billingHandler := api.NewBillingHandler(billingMgr)
 	policyHandler := api.NewPolicyHandler(policyService)
 
 	// Routes
 	mux := http.NewServeMux()
+
+	// Auth Routes
+	mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var input struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		json.NewDecoder(r.Body).Decode(&input)
+		token, err := identityManager.Authenticate(r.Context(), input.Username, input.Password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"token": token})
+	})
+
+	mux.Handle("/auth/change-password", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		user := r.Context().Value("user").(*domain.User)
+		var input struct {
+			OldPassword string `json:"old_password"`
+			NewPassword string `json:"new_password"`
+			Email       string `json:"email"`
+		}
+		json.NewDecoder(r.Body).Decode(&input)
+		
+		// Internal implementation specific call
+		if internalIM, ok := identityManager.(*services.InternalIdentityManager); ok {
+			err := internalIM.ChangePassword(r.Context(), user.ID, input.OldPassword, input.NewPassword, input.Email)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]string{"message": "Password updated successfully"})
+		} else {
+			http.Error(w, "Change password not supported for this identity provider", http.StatusNotImplemented)
+		}
+	})))
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -631,6 +711,48 @@ func main() {
 		}
 	}))
 
+	mux.Handle("/api/billing", authMiddleware.Authenticate(http.HandlerFunc(billingHandler.GetReport)))
+	mux.Handle("/api/stats", authMiddleware.Authenticate(http.HandlerFunc(billingHandler.GetStats)))
+
+	// Enterprise Hierarchy & Bare Metal
+	mux.Handle("/api/organizations", authMiddleware.Authenticate(http.HandlerFunc(hierarchyHandler.ListOrganizations)))
+	mux.Handle("/api/departments", authMiddleware.Authenticate(http.HandlerFunc(hierarchyHandler.ListDepartments)))
+	mux.Handle("/api/baremetal/nodes", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.ListNodes)))
+	mux.Handle("/api/baremetal/register", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.RegisterNode)))
+	mux.Handle("/api/baremetal/provision", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.ProvisionNode)))
+	mux.Handle("/api/baremetal/logs", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.GetNodeLogs)))
+	// Provider Management (Infrastructure Onboarding)
+	mux.Handle("/api/providers", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			providers, _ := providerRepo.List(r.Context())
+			json.NewEncoder(w).Encode(providers)
+		case http.MethodPost:
+			var p domain.Provider
+			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if p.ID == "" {
+				p.ID = domain.NewID()
+			}
+			p.CreatedAt = time.Now()
+			p.Status = "active"
+			providerRepo.Create(r.Context(), &p)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(p)
+		case http.MethodDelete:
+			id := r.URL.Query().Get("id")
+			if err := providerRepo.Delete(r.Context(), id); err != nil {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	handlerWithMetrics := metricsMiddleware.Metrics(mux)
 
 	// Apply CORS as the absolute outermost layer
@@ -655,4 +777,69 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func seedEnterpriseDefaults(orgRepo domain.OrganizationRepository, deptRepo domain.DepartmentRepository, userRepo domain.UserRepository) {
+	ctx := context.Background()
+
+	// 1. Seed Default Organization
+	orgID := "org-nebula-main"
+	org, err := orgRepo.GetByID(ctx, orgID)
+	if err != nil {
+		fmt.Println("[Nebula] Seeding default organization...")
+		org = &domain.Organization{
+			ID:        orgID,
+			Name:      "Nebula Global Corp",
+			CreatedAt: time.Now(),
+		}
+		orgRepo.Create(ctx, org)
+	}
+
+	// 2. Seed Default Department
+	deptID := "dept-core-infra"
+	_, err = deptRepo.GetByID(ctx, deptID)
+	if err != nil {
+		fmt.Println("[Nebula] Seeding core infrastructure department...")
+		deptRepo.Create(ctx, &domain.Department{
+			ID:             deptID,
+			OrganizationID: orgID,
+			Name:           "Core Infrastructure",
+			CreatedAt:      time.Now(),
+		} )
+	}
+
+	// 3. Seed Admin User
+	admin, err := userRepo.GetByUsername(ctx, "admin")
+	if err != nil || admin == nil {
+		fmt.Println("[Nebula] Seeding default administrator...")
+		// Use a temporary InternalIdentityManager just for hashing
+		tempAuth := services.NewInternalIdentityManager(userRepo, "temp")
+		hash, _ := tempAuth.HashPassword("admin")
+		userRepo.Create(ctx, &domain.User{
+			ID:                 "u-admin",
+			Username:           "admin",
+			PasswordHash:       hash,
+			Email:              "admin@nebula.local",
+			TenantID:           "v-t1", // Kept for legacy compatibility
+			MustChangePassword: true,
+			CreatedAt:          time.Now(),
+		})
+	}
+}
+
+func infrastructureSelfHeal() {
+	fmt.Println("[Nebula] Checking infrastructure health...")
+	// Minimal check: if we are in local environment, try to see if docker-compose is needed
+	if _, err := os.Stat("deploy/local/docker-compose.yml"); err == nil {
+		fmt.Println("[Nebula] Local infrastructure definition found. Ensuring services are up...")
+		// Executing docker-compose up -d
+		cmd := exec.Command("docker-compose", "-f", "deploy/local/docker-compose.yml", "up", "-d")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("[Nebula] Warning: Failed to auto-start infrastructure: %v\n", err)
+		} else {
+			fmt.Println("[Nebula] Infrastructure self-healing sequence completed.")
+		}
+	}
 }

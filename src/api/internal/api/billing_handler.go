@@ -30,3 +30,12 @@ func (h *BillingHandler) GetReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(report)
 }
+
+func (h *BillingHandler) GetStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.billingMgr.GetGlobalStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(stats)
+}

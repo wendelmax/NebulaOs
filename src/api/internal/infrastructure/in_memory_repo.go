@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/wendelmax/nebulaos/src/api/domain"
 )
@@ -84,6 +83,18 @@ func (r *InMemoryProjectRepository) GetByTenant(ctx context.Context, tenantID st
 	var list []*domain.Project
 	for _, p := range r.projects {
 		if p.TenantID == tenantID {
+			list = append(list, p)
+		}
+	}
+	return list, nil
+}
+
+func (r *InMemoryProjectRepository) GetByDepartment(ctx context.Context, deptID string) ([]*domain.Project, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.Project
+	for _, p := range r.projects {
+		if p.DepartmentID == deptID {
 			list = append(list, p)
 		}
 	}
@@ -301,84 +312,7 @@ func (r *InMemorySovereigntyPolicyRepository) GetByTenantID(ctx context.Context,
 	return p, nil
 }
 
-type SovereignBillingManager struct {
-	resRepo    domain.ResourceRepository
-	volRepo    domain.VolumeRepository
-	bucketRepo domain.BucketRepository
-	tenantRepo domain.TenantRepository
-}
 
-func NewSovereignBillingManager(resRepo domain.ResourceRepository, volRepo domain.VolumeRepository, bucketRepo domain.BucketRepository, tenantRepo domain.TenantRepository) *SovereignBillingManager {
-	return &SovereignBillingManager{resRepo: resRepo, volRepo: volRepo, bucketRepo: bucketRepo, tenantRepo: tenantRepo}
-}
-
-func (m *SovereignBillingManager) GenerateReport(ctx context.Context, tenantID string) (*domain.BillingReport, error) {
-	// Mock logic: Iterate through resources and sum costs
-	report := &domain.BillingReport{
-		TenantID:    tenantID,
-		TotalCost:   0,
-		Items:       []domain.BillingItem{},
-		GeneratedAt: time.Now(),
-	}
-
-	// Calculate Resource/VM costs
-	vms, _ := m.resRepo.List(ctx)
-	for _, vm := range vms {
-		item := domain.BillingItem{
-			ResourceID: vm.ID,
-			Type:       string(vm.Type),
-			Cost:       15.50,
-			Currency:   "USD",
-		}
-		report.Items = append(report.Items, item)
-		report.TotalCost += item.Cost
-	}
-
-	// Calculate Volume costs
-	vols, _ := m.volRepo.ListByProject(ctx, "default-project")
-	for _, vol := range vols {
-		item := domain.BillingItem{
-			ResourceID: vol.ID,
-			Type:       "VOLUME",
-			Cost:       5.00,
-			Currency:   "USD",
-		}
-		report.Items = append(report.Items, item)
-		report.TotalCost += item.Cost
-	}
-
-	return report, nil
-}
-
-func (m *SovereignBillingManager) GetGlobalStats(ctx context.Context) (*domain.GlobalStats, error) {
-	vms, _ := m.resRepo.List(ctx)
-	// Calculate storage across all buckets/volumes
-	tenants, _ := m.tenantRepo.List(ctx)
-
-	stats := &domain.GlobalStats{
-		TotalCPUs:     0,
-		TotalStorage:  0,
-		TotalEgress:   892.4, // Simulated egress
-		ActiveTenants: len(tenants),
-		TrendCPUs:     12.5,
-		TrendStorage:  -4.2,
-	}
-
-	for _, vm := range vms {
-		if vm.Type == domain.ComputeResource {
-			stats.TotalCPUs += 2.0 // Simplified calculation
-		}
-	}
-
-	// We'll iterate all resources of type storage
-	for _, res := range vms {
-		if res.Type == domain.StorageResource {
-			stats.TotalStorage += 0.5 // Simplified 500GB per storage resource
-		}
-	}
-
-	return stats, nil
-}
 
 type InMemorySecurityGroupRepository struct {
 	mu             sync.RWMutex
@@ -623,4 +557,228 @@ func (r *InMemoryAvailabilityZoneRepository) List(ctx context.Context) ([]*domai
 		list = append(list, az)
 	}
 	return list, nil
+}
+
+type InMemoryProviderRepository struct {
+	mu        sync.RWMutex
+	providers map[string]*domain.Provider
+}
+
+func NewInMemoryProviderRepository() *InMemoryProviderRepository {
+	return &InMemoryProviderRepository{providers: make(map[string]*domain.Provider)}
+}
+
+func (r *InMemoryProviderRepository) Create(ctx context.Context, p *domain.Provider) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.providers[p.ID] = p
+	return nil
+}
+
+func (r *InMemoryProviderRepository) GetByID(ctx context.Context, id string) (*domain.Provider, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	p, ok := r.providers[id]
+	if !ok {
+		return nil, fmt.Errorf("provider not found")
+	}
+	return p, nil
+}
+
+func (r *InMemoryProviderRepository) List(ctx context.Context) ([]*domain.Provider, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.Provider
+	for _, p := range r.providers {
+		list = append(list, p)
+	}
+	return list, nil
+}
+
+func (r *InMemoryProviderRepository) Delete(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.providers[id]; !ok {
+		return fmt.Errorf("provider not found")
+	}
+	delete(r.providers, id)
+	return nil
+}
+
+type InMemoryUserRepository struct {
+	mu    sync.RWMutex
+	users map[string]*domain.User
+}
+
+func NewInMemoryUserRepository() *InMemoryUserRepository {
+	return &InMemoryUserRepository{users: make(map[string]*domain.User)}
+}
+
+func (r *InMemoryUserRepository) Create(ctx context.Context, u *domain.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.users[u.ID] = u
+	return nil
+}
+
+func (r *InMemoryUserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, u := range r.users {
+		if u.Username == username {
+			return u, nil
+		}
+	}
+	return nil, fmt.Errorf("user not found")
+}
+
+func (r *InMemoryUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	u, ok := r.users[id]
+	if !ok {
+		return nil, fmt.Errorf("user not found")
+	}
+	return u, nil
+}
+
+func (r *InMemoryUserRepository) Update(ctx context.Context, u *domain.User) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.users[u.ID] = u
+	return nil
+}
+
+type InMemoryOrganizationRepository struct {
+	mu   sync.RWMutex
+	orgs map[string]*domain.Organization
+}
+
+func NewInMemoryOrganizationRepository() *InMemoryOrganizationRepository {
+	return &InMemoryOrganizationRepository{orgs: make(map[string]*domain.Organization)}
+}
+
+func (r *InMemoryOrganizationRepository) Create(ctx context.Context, o *domain.Organization) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.orgs[o.ID] = o
+	return nil
+}
+
+func (r *InMemoryOrganizationRepository) GetByID(ctx context.Context, id string) (*domain.Organization, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	o, ok := r.orgs[id]
+	if !ok {
+		return nil, fmt.Errorf("org not found")
+	}
+	return o, nil
+}
+
+func (r *InMemoryOrganizationRepository) List(ctx context.Context) ([]*domain.Organization, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.Organization
+	for _, o := range r.orgs {
+		list = append(list, o)
+	}
+	return list, nil
+}
+
+type InMemoryDepartmentRepository struct {
+	mu    sync.RWMutex
+	depts map[string]*domain.Department
+}
+
+func NewInMemoryDepartmentRepository() *InMemoryDepartmentRepository {
+	return &InMemoryDepartmentRepository{depts: make(map[string]*domain.Department)}
+}
+
+func (r *InMemoryDepartmentRepository) Create(ctx context.Context, d *domain.Department) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.depts[d.ID] = d
+	return nil
+}
+
+func (r *InMemoryDepartmentRepository) GetByID(ctx context.Context, id string) (*domain.Department, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	d, ok := r.depts[id]
+	if !ok {
+		return nil, fmt.Errorf("dept not found")
+	}
+	return d, nil
+}
+
+func (r *InMemoryDepartmentRepository) GetByOrganization(ctx context.Context, orgID string) ([]*domain.Department, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.Department
+	for _, d := range r.depts {
+		if d.OrganizationID == orgID {
+			list = append(list, d)
+		}
+	}
+	return list, nil
+}
+
+type InMemoryBareMetalRepository struct {
+	mu    sync.RWMutex
+	nodes map[string]*domain.BareMetalNode
+	logs  map[string][]*domain.ProvisioningLog
+}
+
+func NewInMemoryBareMetalRepository() *InMemoryBareMetalRepository {
+	return &InMemoryBareMetalRepository{
+		nodes: make(map[string]*domain.BareMetalNode),
+		logs:  make(map[string][]*domain.ProvisioningLog),
+	}
+}
+
+func (r *InMemoryBareMetalRepository) Create(ctx context.Context, n *domain.BareMetalNode) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.nodes[n.ID] = n
+	return nil
+}
+
+func (r *InMemoryBareMetalRepository) GetByID(ctx context.Context, id string) (*domain.BareMetalNode, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	n, ok := r.nodes[id]
+	if !ok {
+		return nil, fmt.Errorf("node not found")
+	}
+	return n, nil
+}
+
+func (r *InMemoryBareMetalRepository) List(ctx context.Context) ([]*domain.BareMetalNode, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.BareMetalNode
+	for _, n := range r.nodes {
+		list = append(list, n)
+	}
+	return list, nil
+}
+
+func (r *InMemoryBareMetalRepository) Update(ctx context.Context, n *domain.BareMetalNode) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.nodes[n.ID] = n
+	return nil
+}
+
+func (r *InMemoryBareMetalRepository) AddLog(ctx context.Context, l *domain.ProvisioningLog) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.logs[l.NodeID] = append(r.logs[l.NodeID], l)
+	return nil
+}
+
+func (r *InMemoryBareMetalRepository) GetLogs(ctx context.Context, nodeID string) ([]*domain.ProvisioningLog, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.logs[nodeID], nil
 }

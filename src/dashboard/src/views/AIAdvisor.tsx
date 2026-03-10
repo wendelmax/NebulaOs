@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, TrendingDown, ShieldAlert, Sparkles, CheckCircle, ArrowRight, RefreshCw, Zap } from 'lucide-react';
+import { api } from '../api/client';
 
 const AIAdvisor: React.FC = () => {
     const [insights, setInsights] = useState<any[]>([]);
@@ -8,11 +9,8 @@ const AIAdvisor: React.FC = () => {
     const fetchInsights = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://localhost:8000/intelligence/advisor?project_id=v-p1');
-            if (resp.ok) {
-                const data = await resp.json();
-                setInsights(data || []);
-            }
+            const resp = await api.getAdvisorInsights('v-p1');
+            setInsights(resp.data || []);
         } catch (err) {
             console.error("Failed to fetch AI insights", err);
         } finally {
@@ -34,84 +32,116 @@ const AIAdvisor: React.FC = () => {
     };
 
     return (
-        <div className="view-container animate-fade-in">
-            <header className="view-header">
+        <div className="flex flex-col gap-10 max-w-[1400px]">
+            <header className="flex justify-between items-end pb-4 border-b border-white/5">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <Brain className="text-primary" size={28} />
-                        <h1>AI Resource Advisor</h1>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Brain size={14} className="text-primary" />
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Neural Intelligence</span>
                     </div>
-                    <p className="text-muted">Proactive operational intelligence powered by NebulaAI.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">AI Advisor</h1>
+                    <p className="text-muted mt-2 font-medium">Proactive operational intelligence powered by NebulaAI.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="btn-secondary" onClick={fetchInsights} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="flex gap-4">
+                    <button className="btn-secondary" onClick={fetchInsights}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                         Refresh
                     </button>
-                    <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Sparkles size={18} />
-                        Run Deep Scan
+                    <button className="btn-secondary">
+                        <Sparkles size={18} className="text-primary-light" />
+                        Run Neural Scan
                     </button>
                 </div>
             </header>
 
-            <div className="stats-grid" style={{ marginTop: '2rem' }}>
-                <div className="stat-card glass" style={{ gridColumn: 'span 2' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.5rem' }}>Top Recommendations</h2>
-                            <p className="text-muted" style={{ fontSize: '0.9rem' }}>Applied intelligence for your infrastructure.</p>
-                        </div>
-                        <span className="stat-label" style={{ background: 'var(--bg-accent)', color: 'var(--primary-light)' }}>
-                            {insights.length} Insights Found
-                        </span>
-                    </div>
-
-                    <div className="list-container">
-                        {insights.length === 0 && !loading && (
-                            <div className="text-center py-12">
-                                <CheckCircle className="text-primary mx-auto mb-4" size={48} />
-                                <p className="text-muted">Your infrastructure is fully optimized. No insights found.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 flex flex-col gap-6">
+                    <div className="glass p-8 relative overflow-hidden">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold tracking-tight">Operational Insights</h2>
+                                <p className="text-xs text-dim font-medium mt-1 uppercase tracking-wider">Applied intelligence for sovereign nodes</p>
                             </div>
-                        )}
-                        {insights.map((insight: any, idx: number) => {
-                            const Icon = getInsightIcon(insight.type);
-                            return (
-                                <div key={idx} className="list-item glass-hover" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
-                                        <div className="stat-icon" style={{
-                                            background: insight.severity === 'high' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(56, 189, 248, 0.1)',
-                                            color: insight.severity === 'high' ? '#ef4444' : '#0ea5e9'
-                                        }}>
-                                            <Icon size={20} />
+                            <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black tracking-widest text-primary-light uppercase">
+                                {insights.length} RECOMMENDATIONS
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            {insights.length === 0 && !loading && (
+                                <div className="flex flex-col items-center justify-center py-20 text-center gap-4 opacity-40">
+                                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                        <CheckCircle size={32} />
+                                    </div>
+                                    <p className="text-lg font-bold">Infrastucture Optimized</p>
+                                    <p className="text-sm text-dim max-w-[280px]">NebulaAI has scanned all sectors and found no deviations from target performance.</p>
+                                </div>
+                            )}
+                            {insights.map((insight: any, idx: number) => {
+                                const Icon = getInsightIcon(insight.type);
+                                return (
+                                    <div key={idx} className="glass p-6 flex items-center gap-6 group hover:bg-white/5 transition-all">
+                                        <div className={`p-4 rounded-2xl bg-white/5 ${insight.severity === 'high' ? 'text-red-400 ring-1 ring-red-400/20' : 'text-primary ring-1 ring-primary/20'}`}>
+                                            <Icon size={24} />
                                         </div>
-                                        <div>
-                                            <div style={{ fontWeight: 700, fontSize: '1rem' }}>{insight.message}</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                                                {insight.actionable && <CheckCircle size={14} className="text-primary" />}
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--primary-light)', fontWeight: 600 }}>{insight.severity.toUpperCase()} IMPACT</span>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-main leading-tight group-hover:text-primary-light transition-colors">{insight.message}</div>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <span className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded border ${insight.severity === 'high' ? 'border-red-400/30 text-red-400/80' : 'border-primary/30 text-primary/80'} uppercase`}>
+                                                    {insight.severity} Impact
+                                                </span>
+                                                {insight.actionable && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-bold text-dim uppercase tracking-wider">
+                                                        <CheckCircle size={10} className="text-emerald-500" />
+                                                        Automated Fix Available
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
+                                        <button className="btn-primary py-2 px-6 text-xs font-bold whitespace-nowrap">
+                                            Execute <ArrowRight size={14} className="ml-2" />
+                                        </button>
                                     </div>
-                                    <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        Apply Fix
-                                        <ArrowRight size={14} />
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
-                <div className="stat-card glass" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <h3 style={{ fontWeight: 700 }}>AI Performance Score</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '150px' }}>
-                        <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary-light)' }}>{insights.length === 0 ? '100' : 94 - (insights.length * 2)}</div>
-                        <div style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>/ 100</div>
+                <div className="flex flex-col gap-8">
+                    <div className="glass p-10 bg-gradient-to-br from-primary/10 to-transparent border-primary/10 flex flex-col items-center text-center">
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-dim mb-10">Neural Stability Score</h3>
+                        <div className="relative">
+                            <div className="absolute inset-0 blur-3xl bg-primary/20 rounded-full animate-pulse" />
+                            <div className="relative flex flex-col items-center">
+                                <span className="text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 leading-none">
+                                    {insights.length === 0 ? '100' : 94 - (insights.length * 2)}
+                                </span>
+                                <span className="text-xs font-bold text-dim uppercase tracking-widest mt-4">Sector Performance</span>
+                            </div>
+                        </div>
+                        <p className="text-sm text-muted leading-relaxed mt-10 max-w-[200px]">
+                            {insights.length === 0 ? "Perfect score! Infrastructure is operating at peak theoretical efficiency." : "Overall stability is within acceptable thresholds."}
+                        </p>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        {insights.length === 0 ? "Perfect score! No optimizations required." : "Your infrastructure is well-maintained with minor optimizations suggested."}
-                    </p>
+
+                    <div className="glass p-8 flex flex-col gap-4">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text- dim mb-2">AI Diagnostics</h3>
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-4">
+                            <Zap size={18} className="text-secondary" />
+                            <div>
+                                <div className="text-[10px] font-black text-dim uppercase tracking-widest">Resource Drift</div>
+                                <div className="text-sm font-bold text-main mt-0.5">0.42% Variance</div>
+                            </div>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-4">
+                            <ShieldAlert size={18} className="text-red-400" />
+                            <div>
+                                <div className="text-[10px] font-black text-dim uppercase tracking-widest">Compliance</div>
+                                <div className="text-sm font-bold text-main mt-0.5">98.4% Aligned</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

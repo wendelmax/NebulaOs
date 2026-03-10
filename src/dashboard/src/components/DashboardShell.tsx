@@ -1,6 +1,6 @@
 import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag, Map, Brain } from 'lucide-react';
 
-export type TabType = 'overview' | 'resources' | 'storage' | 'governance' | 'observability' | 'networking' | 'billing' | 'settings' | 'marketplace' | 'global' | 'advisor';
+export type TabType = 'overview' | 'resources' | 'storage' | 'governance' | 'observability' | 'networking' | 'billing' | 'settings' | 'marketplace' | 'global' | 'advisor' | 'hierarchy' | 'baremetal';
 
 interface SidebarItemProps {
     icon: any;
@@ -23,42 +23,31 @@ interface DashboardShellProps {
     onTabChange: (tab: TabType) => void;
     theme: 'dark' | 'light';
     onToggleTheme: () => void;
+    onLogout: () => void;
 }
 
-const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, onTabChange, theme, onToggleTheme }) => {
-    const logoSrc = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
+const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, onTabChange, theme, onToggleTheme, onLogout }) => {
     return (
         <div className="dashboard-container">
             {/* Sidebar */}
-            <aside className="sidebar glass">
-                <header style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img src={logoSrc} alt="NebulaOS" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
-                        </div>
-                        <button
-                            className="glass-hover"
-                            onClick={onToggleTheme}
-                            style={{
-                                padding: '0.75rem',
-                                borderRadius: '12px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'var(--bg-accent)',
-                                color: 'var(--text-main)',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
+            <aside className="sidebar">
+                <header className="sidebar-brand">
+                    <div className="brand-icon">
+                        <Brain size={28} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.025em', background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            NebulaOS
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div className="flex flex-col">
+                        <span className="brand-text">NebulaOS</span>
+                        <span className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] -mt-1 opacity-60">
                             Enterprise Cloud
                         </span>
                     </div>
+                    <button
+                        className="btn-secondary p-2 ml-auto"
+                        onClick={onToggleTheme}
+                        style={{ padding: '0.6rem', borderRadius: '12px' }}
+                    >
+                        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </button>
                 </header>
 
                 <nav className="sidebar-nav">
@@ -72,17 +61,21 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, on
                     <SidebarItem icon={Map} label="Global Map" active={activeTab === 'global'} onClick={() => onTabChange('global')} />
                     <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => onTabChange('marketplace')} />
                     <SidebarItem icon={Brain} label="AI Advisor" active={activeTab === 'advisor'} onClick={() => onTabChange('advisor')} />
+                    <SidebarItem icon={Sun} label="Enterprise" active={activeTab === 'hierarchy'} onClick={() => onTabChange('hierarchy')} />
+                    <SidebarItem icon={Server} label="Bare Metal" active={activeTab === 'baremetal'} onClick={() => onTabChange('baremetal')} />
                     <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
                 </nav>
 
-                <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)' }}>
-                    <SidebarItem icon={LogOut} label="Log Out" />
+                <div className="mt-auto pt-6 border-t border-white/5">
+                    <SidebarItem icon={LogOut} label="Sign Out" onClick={onLogout} />
                 </div>
             </aside>
 
             {/* Main Content */}
             <main className="main-content">
-                {children}
+                <div className="animate-fade-in h-min">
+                    {children}
+                </div>
             </main>
         </div>
     );

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Trash2, ExternalLink, RefreshCw, Filter, Search } from 'lucide-react';
+import ResourceWizard from '../components/ResourceWizard';
+import { api } from '../api/client';
 
 const ResourcesView: React.FC = () => {
     const [resources, setResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
+    const [showWizard, setShowWizard] = useState(false);
+    
     const fetchResources = async () => {
         setLoading(true);
         try {
-            const resp = await fetch('http://localhost:8000/resources?project_id=v-p1');
-            if (resp.ok) {
-                const data = await resp.json();
-                setResources(data || []);
-            }
+            const resp = await api.getResources();
+            setResources(resp.data || []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -24,96 +24,104 @@ const ResourcesView: React.FC = () => {
         fetchResources();
     }, []);
 
-    const getStatusColor = (state: string) => {
-        switch (state.toLowerCase()) {
-            case 'active': return '#10b981';
-            case 'provisioning': return '#3b82f6';
-            case 'deleted': return '#f43f5e';
-            default: return 'var(--text-muted)';
-        }
-    };
-
     return (
-        <div className="view-container animate-fade-in">
-            <header className="view-header">
+        <div className="flex flex-col gap-8 max-w-[1400px]">
+            {showWizard && (
+                <ResourceWizard 
+                    isOpen={showWizard} 
+                    onClose={() => setShowWizard(false)} 
+                    onSuccess={fetchResources}
+                />
+            )}
+            
+            <header className="flex justify-between items-end pb-4 border-b border-white/5">
                 <div>
-                    <h1>Infrastructure Resources</h1>
-                    <p className="text-muted">Manage and monitor your multi-cloud compute assets.</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Server size={14} className="text-primary" />
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Compute Fabric</span>
+                    </div>
+                    <h1 className="text-4xl font-extrabold tracking-tight">Infrastructure Hub</h1>
+                    <p className="text-muted mt-2 font-medium">Manage and monitor multi-cloud compute assets.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="btn-secondary" onClick={fetchResources} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <RefreshCw size={18} className={loading === true ? 'animate-spin' : ''} />
+                <div className="flex gap-4">
+                    <button className="btn-secondary" onClick={fetchResources}>
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                         Refresh
                     </button>
-                    <button className="btn-primary">Provision Resource</button>
+                    <button className="btn-primary" onClick={() => setShowWizard(true)}>
+                        Deploy Resource
+                    </button>
                 </div>
             </header>
 
-            <div className="glass p-4 mb-8 mt-8" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <div className="flex gap-4 items-center">
+                <div className="search-box">
+                    <Search size={18} className="text-muted" />
                     <input
                         type="text"
-                        placeholder="Search resources by ID, name or provider..."
-                        style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', background: 'var(--bg-accent)', border: '1px solid var(--glass-border)', borderRadius: '12px', color: 'var(--text-main)' }}
+                        placeholder="Search assets by ID, node or provider..."
                     />
                 </div>
-                <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button className="btn-secondary">
                     <Filter size={18} />
-                    Filter
+                    Filters
                 </button>
             </div>
 
-            <div className="glass" style={{ overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ background: 'var(--bg-accent)' }}>
+            <div className="mt-4">
+                <table>
+                    <thead>
                         <tr>
-                            <th style={{ textAlign: 'left', padding: '1.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type / ID</th>
-                            <th style={{ textAlign: 'left', padding: '1.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Resource Name</th>
-                            <th style={{ textAlign: 'left', padding: '1.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Provider</th>
-                            <th style={{ textAlign: 'left', padding: '1.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                            <th style={{ textAlign: 'right', padding: '1.25rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
+                            <th>Instance Detail</th>
+                            <th>Identity</th>
+                            <th>Provider Context</th>
+                            <th>Deployment State</th>
+                            <th style={{ textAlign: 'right' }}>Management</th>
                         </tr>
                     </thead>
                     <tbody>
                         {resources.length === 0 && !loading && (
                             <tr>
-                                <td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    No resources found for this project.
+                                <td colSpan={5} className="py-24 text-center text-muted font-medium bg-transparent border-none">
+                                    <div className="flex flex-col items-center gap-4 opacity-40">
+                                        <Server size={48} />
+                                        <p>No active resources detected in this sector.</p>
+                                    </div>
                                 </td>
                             </tr>
                         )}
                         {resources.map((res) => (
-                            <tr key={res.id} className="glass-hover" style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                                <td style={{ padding: '1.25rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div className="stat-icon" style={{ padding: '0.5rem', background: 'var(--bg-accent)', color: 'var(--primary-light)' }}>
-                                            <Server size={18} />
+                            <tr key={res.id}>
+                                <td>
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-white/5 rounded-xl text-primary">
+                                            <Server size={20} />
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{res.type}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{res.id}</div>
+                                            <div className="font-bold text-main">{res.type}</div>
+                                            <div className="text-xs text-dim font-mono mt-0.5">{res.id}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <td style={{ padding: '1.25rem', fontWeight: 500, fontSize: '0.9rem' }}>{res.name}</td>
-                                <td style={{ padding: '1.25rem' }}>
-                                    <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.6rem', borderRadius: '4px' }}>
+                                <td className="font-semibold text-main/90">{res.name}</td>
+                                <td>
+                                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 bg-white/5 rounded-md border border-white/5 text-dim">
                                         {res.provider}
                                     </span>
                                 </td>
-                                <td style={{ padding: '1.25rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: getStatusColor(res.state) }}></div>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{res.state}</span>
+                                <td>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`badge ${res.state.toLowerCase() === 'active' ? 'badge-success' : 'badge-warning'}`}>
+                                            {res.state}
+                                        </span>
                                     </div>
                                 </td>
-                                <td style={{ padding: '1.25rem', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                        <button className="glass-hover p-2 rounded-lg text-muted">
+                                <td style={{ textAlign: 'right' }}>
+                                    <div className="flex gap-2 justify-end">
+                                        <button className="btn-secondary p-2.5 rounded-xl hover:text-primary">
                                             <ExternalLink size={18} />
                                         </button>
-                                        <button className="glass-hover p-2 rounded-lg text-danger">
+                                        <button className="btn-secondary p-2.5 rounded-xl hover:text-red-400">
                                             <Trash2 size={18} />
                                         </button>
                                     </div>

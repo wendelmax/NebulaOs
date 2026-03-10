@@ -19,6 +19,52 @@ var _ domain.SovereigntyPolicyRepository = (*PostgresPolicyRepository)(nil)
 var _ domain.SecurityGroupRepository = (*PostgresSecurityGroupRepository)(nil)
 var _ domain.TerraformStateRepository = (*PostgresTerraformStateRepository)(nil)
 var _ domain.BlueprintRepository = (*PostgresBlueprintRepository)(nil)
+var _ domain.UserRepository = (*PostgresUserRepository)(nil)
+var _ domain.OrganizationRepository = (*PostgresOrganizationRepository)(nil)
+var _ domain.DepartmentRepository = (*PostgresDepartmentRepository)(nil)
+var _ domain.BareMetalRepository = (*PostgresBareMetalRepository)(nil)
+
+// --- User Repository ---
+
+type PostgresUserRepository struct {
+	db *sql.DB
+}
+
+func NewPostgresUserRepository(db *sql.DB) *PostgresUserRepository {
+	return &PostgresUserRepository{db: db}
+}
+
+func (r *PostgresUserRepository) Create(ctx context.Context, u *domain.User) error {
+	query := `INSERT INTO users (id, username, password_hash, email, tenant_id, must_change_password, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err := r.db.ExecContext(ctx, query, u.ID, u.Username, u.PasswordHash, u.Email, u.TenantID, u.MustChangePassword, u.CreatedAt)
+	return err
+}
+
+func (r *PostgresUserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	query := `SELECT id, username, password_hash, email, tenant_id, must_change_password, created_at FROM users WHERE username = $1`
+	row := r.db.QueryRowContext(ctx, query, username)
+	var u domain.User
+	if err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Email, &u.TenantID, &u.MustChangePassword, &u.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	query := `SELECT id, username, password_hash, email, tenant_id, must_change_password, created_at FROM users WHERE id = $1`
+	row := r.db.QueryRowContext(ctx, query, id)
+	var u domain.User
+	if err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Email, &u.TenantID, &u.MustChangePassword, &u.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *PostgresUserRepository) Update(ctx context.Context, u *domain.User) error {
+	query := `UPDATE users SET password_hash = $1, email = $2, tenant_id = $3, must_change_password = $4 WHERE id = $5`
+	_, err := r.db.ExecContext(ctx, query, u.PasswordHash, u.Email, u.TenantID, u.MustChangePassword, u.ID)
+	return err
+}
 
 // --- Tenant Repository ---
 
@@ -76,23 +122,23 @@ func NewPostgresProjectRepository(db *sql.DB) *PostgresProjectRepository {
 }
 
 func (r *PostgresProjectRepository) Create(ctx context.Context, p *domain.Project) error {
-	query := `INSERT INTO projects (id, tenant_id, name, created_at) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.ExecContext(ctx, query, p.ID, p.TenantID, p.Name, p.CreatedAt)
+	query := `INSERT INTO projects (id, department_id, tenant_id, name, created_at) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.ExecContext(ctx, query, p.ID, p.DepartmentID, p.TenantID, p.Name, p.CreatedAt)
 	return err
 }
 
 func (r *PostgresProjectRepository) GetByID(ctx context.Context, id string) (*domain.Project, error) {
-	query := `SELECT id, tenant_id, name, created_at FROM projects WHERE id = $1`
+	query := `SELECT id, department_id, tenant_id, name, created_at FROM projects WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 	var p domain.Project
-	if err := row.Scan(&p.ID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
+	if err := row.Scan(&p.ID, &p.DepartmentID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
 func (r *PostgresProjectRepository) GetByTenant(ctx context.Context, tenantID string) ([]*domain.Project, error) {
-	query := `SELECT id, tenant_id, name, created_at FROM projects WHERE tenant_id = $1`
+	query := `SELECT id, department_id, tenant_id, name, created_at FROM projects WHERE tenant_id = $1`
 	rows, err := r.db.QueryContext(ctx, query, tenantID)
 	if err != nil {
 		return nil, err
@@ -102,7 +148,26 @@ func (r *PostgresProjectRepository) GetByTenant(ctx context.Context, tenantID st
 	var projects []*domain.Project
 	for rows.Next() {
 		var p domain.Project
-		if err := rows.Scan(&p.ID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.DepartmentID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		projects = append(projects, &p)
+	}
+	return projects, nil
+}
+
+func (r *PostgresProjectRepository) GetByDepartment(ctx context.Context, deptID string) ([]*domain.Project, error) {
+	query := `SELECT id, department_id, tenant_id, name, created_at FROM projects WHERE department_id = $1`
+	rows, err := r.db.QueryContext(ctx, query, deptID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var projects []*domain.Project
+	for rows.Next() {
+		var p domain.Project
+		if err := rows.Scan(&p.ID, &p.DepartmentID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
 			return nil, err
 		}
 		projects = append(projects, &p)
@@ -111,7 +176,7 @@ func (r *PostgresProjectRepository) GetByTenant(ctx context.Context, tenantID st
 }
 
 func (r *PostgresProjectRepository) List(ctx context.Context) ([]*domain.Project, error) {
-	query := `SELECT id, tenant_id, name, created_at FROM projects`
+	query := `SELECT id, department_id, tenant_id, name, created_at FROM projects`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -121,7 +186,7 @@ func (r *PostgresProjectRepository) List(ctx context.Context) ([]*domain.Project
 	var projects []*domain.Project
 	for rows.Next() {
 		var p domain.Project
-		if err := rows.Scan(&p.ID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.DepartmentID, &p.TenantID, &p.Name, &p.CreatedAt); err != nil {
 			return nil, err
 		}
 		projects = append(projects, &p)
@@ -554,4 +619,169 @@ func (r *PostgresGSLBRepository) List(ctx context.Context) ([]*domain.GlobalEndp
 		list = append(list, &ep)
 	}
 	return list, nil
+}
+// --- Organization Repository ---
+
+type PostgresOrganizationRepository struct {
+	db *sql.DB
+}
+
+func NewPostgresOrganizationRepository(db *sql.DB) *PostgresOrganizationRepository {
+	return &PostgresOrganizationRepository{db: db}
+}
+
+func (r *PostgresOrganizationRepository) Create(ctx context.Context, o *domain.Organization) error {
+	query := `INSERT INTO organizations (id, name, created_at) VALUES ($1, $2, $3)`
+	_, err := r.db.ExecContext(ctx, query, o.ID, o.Name, o.CreatedAt)
+	return err
+}
+
+func (r *PostgresOrganizationRepository) GetByID(ctx context.Context, id string) (*domain.Organization, error) {
+	query := `SELECT id, name, created_at FROM organizations WHERE id = $1`
+	row := r.db.QueryRowContext(ctx, query, id)
+	var o domain.Organization
+	if err := row.Scan(&o.ID, &o.Name, &o.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+func (r *PostgresOrganizationRepository) List(ctx context.Context) ([]*domain.Organization, error) {
+	query := `SELECT id, name, created_at FROM organizations`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var organizations []*domain.Organization
+	for rows.Next() {
+		var o domain.Organization
+		if err := rows.Scan(&o.ID, &o.Name, &o.CreatedAt); err != nil {
+			return nil, err
+		}
+		organizations = append(organizations, &o)
+	}
+	return organizations, nil
+}
+
+// --- Department Repository ---
+
+type PostgresDepartmentRepository struct {
+	db *sql.DB
+}
+
+func NewPostgresDepartmentRepository(db *sql.DB) *PostgresDepartmentRepository {
+	return &PostgresDepartmentRepository{db: db}
+}
+
+func (r *PostgresDepartmentRepository) Create(ctx context.Context, d *domain.Department) error {
+	query := `INSERT INTO departments (id, organization_id, name, created_at) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.ExecContext(ctx, query, d.ID, d.OrganizationID, d.Name, d.CreatedAt)
+	return err
+}
+
+func (r *PostgresDepartmentRepository) GetByID(ctx context.Context, id string) (*domain.Department, error) {
+	query := `SELECT id, organization_id, name, created_at FROM departments WHERE id = $1`
+	row := r.db.QueryRowContext(ctx, query, id)
+	var d domain.Department
+	if err := row.Scan(&d.ID, &d.OrganizationID, &d.Name, &d.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
+func (r *PostgresDepartmentRepository) GetByOrganization(ctx context.Context, orgID string) ([]*domain.Department, error) {
+	query := `SELECT id, organization_id, name, created_at FROM departments WHERE organization_id = $1`
+	rows, err := r.db.QueryContext(ctx, query, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var departments []*domain.Department
+	for rows.Next() {
+		var d domain.Department
+		if err := rows.Scan(&d.ID, &d.OrganizationID, &d.Name, &d.CreatedAt); err != nil {
+			return nil, err
+		}
+		departments = append(departments, &d)
+	}
+	return departments, nil
+}
+
+// --- Bare Metal Repository ---
+
+type PostgresBareMetalRepository struct {
+	db *sql.DB
+}
+
+func NewPostgresBareMetalRepository(db *sql.DB) *PostgresBareMetalRepository {
+	return &PostgresBareMetalRepository{db: db}
+}
+
+func (r *PostgresBareMetalRepository) Create(ctx context.Context, n *domain.BareMetalNode) error {
+	query := `INSERT INTO bare_metal_nodes (id, name, mac, ipmi_address, ipmi_user, ipmi_password, cpu_cores, memory_gb, disk_gb, department_id, state, provider_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	_, err := r.db.ExecContext(ctx, query, n.ID, n.Name, n.MAC, n.IPMIAddress, n.IPMIUser, n.IPMIPassword, n.CPUCores, n.MemoryGB, n.DiskGB, n.DepartmentID, n.State, n.ProviderID, n.CreatedAt)
+	return err
+}
+
+func (r *PostgresBareMetalRepository) GetByID(ctx context.Context, id string) (*domain.BareMetalNode, error) {
+	query := `SELECT id, name, mac, ipmi_address, ipmi_user, ipmi_password, cpu_cores, memory_gb, disk_gb, department_id, state, provider_id, created_at FROM bare_metal_nodes WHERE id = $1`
+	row := r.db.QueryRowContext(ctx, query, id)
+	var n domain.BareMetalNode
+	if err := row.Scan(&n.ID, &n.Name, &n.MAC, &n.IPMIAddress, &n.IPMIUser, &n.IPMIPassword, &n.CPUCores, &n.MemoryGB, &n.DiskGB, &n.DepartmentID, &n.State, &n.ProviderID, &n.CreatedAt); err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
+func (r *PostgresBareMetalRepository) List(ctx context.Context) ([]*domain.BareMetalNode, error) {
+	query := `SELECT id, name, mac, ipmi_address, ipmi_user, ipmi_password, cpu_cores, memory_gb, disk_gb, department_id, state, provider_id, created_at FROM bare_metal_nodes`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nodes []*domain.BareMetalNode
+	for rows.Next() {
+		var n domain.BareMetalNode
+		if err := rows.Scan(&n.ID, &n.Name, &n.MAC, &n.IPMIAddress, &n.IPMIUser, &n.IPMIPassword, &n.CPUCores, &n.MemoryGB, &n.DiskGB, &n.DepartmentID, &n.State, &n.ProviderID, &n.CreatedAt); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, &n)
+	}
+	return nodes, nil
+}
+
+func (r *PostgresBareMetalRepository) Update(ctx context.Context, n *domain.BareMetalNode) error {
+	query := `UPDATE bare_metal_nodes SET name = $1, state = $2, department_id = $3 WHERE id = $4`
+	_, err := r.db.ExecContext(ctx, query, n.Name, n.State, n.DepartmentID, n.ID)
+	return err
+}
+
+func (r *PostgresBareMetalRepository) AddLog(ctx context.Context, l *domain.ProvisioningLog) error {
+	query := `INSERT INTO provisioning_logs (id, node_id, message, level, timestamp) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.ExecContext(ctx, query, l.ID, l.NodeID, l.Message, l.Level, l.Timestamp)
+	return err
+}
+
+func (r *PostgresBareMetalRepository) GetLogs(ctx context.Context, nodeID string) ([]*domain.ProvisioningLog, error) {
+	query := `SELECT id, node_id, message, level, timestamp FROM provisioning_logs WHERE node_id = $1 ORDER BY timestamp DESC`
+	rows, err := r.db.QueryContext(ctx, query, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []*domain.ProvisioningLog
+	for rows.Next() {
+		var l domain.ProvisioningLog
+		if err := rows.Scan(&l.ID, &l.NodeID, &l.Message, &l.Level, &l.Timestamp); err != nil {
+			return nil, err
+		}
+		logs = append(logs, &l)
+	}
+	return logs, nil
 }

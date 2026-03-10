@@ -12,6 +12,19 @@ func NewID() string {
 	return fmt.Sprintf("%x", b)
 }
 
+type Organization struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Department struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organization_id"`
+	Name           string    `json:"name"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type Tenant struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -19,10 +32,11 @@ type Tenant struct {
 }
 
 type Project struct {
-	ID        string    `json:"id"`
-	TenantID  string    `json:"tenant_id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           string    `json:"id"`
+	DepartmentID string    `json:"department_id"`
+	TenantID     string    `json:"tenant_id"` // Kept for legacy compatibility
+	Name         string    `json:"name"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type ResourceType string
@@ -122,11 +136,13 @@ type Image struct {
 }
 
 type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	TenantID  string    `json:"tenant_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                 string    `json:"id"`
+	Username           string    `json:"username"`
+	PasswordHash       string    `json:"-"`
+	Email              string    `json:"email"`
+	TenantID           string    `json:"tenant_id"`
+	MustChangePassword bool      `json:"must_change_password"`
+	CreatedAt          time.Time `json:"created_at"`
 }
 
 type Role struct {
@@ -249,8 +265,43 @@ type Region struct {
 }
 
 type AvailabilityZone struct {
-	ID       string `json:"id"`
-	RegionID string `json:"region_id"`
-	Name     string `json:"name"`
-	State    string `json:"state"` // "available", "maintenance"
+	ID       string    `json:"id"`
+	RegionID string    `json:"region_id"`
+	Name     string    `json:"name"`
+	State    string    `json:"state"` // "available", "maintenance"
+}
+
+// Bare Metal & Hardware Inventory
+type NodeState string
+
+const (
+	NodeStateAvailable    NodeState = "available"
+	NodeStateProvisioning NodeState = "provisioning"
+	NodeStateActive       NodeState = "active"
+	NodeStateMaintenance  NodeState = "maintenance"
+	NodeStateError        NodeState = "error"
+)
+
+type BareMetalNode struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	MAC          string    `json:"mac"`
+	IPMIAddress  string    `json:"ipmi_address"`
+	IPMIUser     string    `json:"ipmi_user"`
+	IPMIPassword string    `json:"-"`
+	CPUCores     int       `json:"cpu_cores"`
+	MemoryGB     int       `json:"memory_gb"`
+	DiskGB       int       `json:"disk_gb"`
+	DepartmentID string    `json:"department_id,omitempty"`
+	State        NodeState `json:"state"`
+	ProviderID   string    `json:"provider_id,omitempty"` // The physical server provider ref
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type ProvisioningLog struct {
+	ID        string    `json:"id"`
+	NodeID    string    `json:"node_id"`
+	Message   string    `json:"message"`
+	Level     string    `json:"level"` // "info", "error"
+	Timestamp time.Time `json:"timestamp"`
 }

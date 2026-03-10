@@ -23,10 +23,49 @@ export const api = {
     createTenant: (data: any) => client.post('/tenants', data),
     getProjects: () => client.get('/projects'),
     createProject: (data: any) => client.post('/projects', data),
+
+    // Auth
+    login: (data: any) => client.post('/auth/login', data),
+    changePassword: (data: any) => client.post('/auth/change-password', data),
     getResources: () => client.get('/resources'),
     createResource: (data: any) => client.post('/resources', data),
     getNetworkStatus: (domain: string) => client.get(`/network/certificate?domain=${domain}`),
     getStats: () => client.get('/intelligence/stats'),
+    
+    // Open Cloud Extensions
+    getPresets: () => client.get('/infra/automated/provision'),
+    provisionPreset: (data: { preset_id: string, project_id: string, variables?: any }) => 
+        client.post('/infra/automated/provision', data),
+    getRegions: () => client.get('/cloud/regions'),
+    getZones: (regionId?: string) => client.get(`/cloud/zones${regionId ? `?region_id=${regionId}` : ''}`),
+    createInterProviderRoute: (data: any) => client.post('/network/routes', data),
+    orchestrateStack: (data: any) => client.post('/cloud/orchestrate/stack', data),
+
+    // Intelligence & Governance
+    getAdvisorInsights: (projectId: string) => client.get(`/intelligence/advisor?project_id=${projectId}`),
+    getPolicy: (tenantId: string) => client.get(`/governance/policy?tenant_id=${tenantId}`),
+
+    // Provider Management
+    getProviders: () => client.get('/api/providers'),
+    registerProvider: (data: any) => client.post('/api/providers', data),
+    deleteProvider: (id: string) => client.delete(`/api/providers?id=${id}`),
+
+    // Storage
+    getVolumes: (projectId: string) => client.get(`/storage/volumes?project_id=${projectId}`),
+    getBuckets: (projectId: string) => client.get(`/storage/buckets?project_id=${projectId}`),
+
+    // Billing
+    getBillingReport: (tenantId: string) => client.get(`/billing/report?tenant_id=${tenantId}`),
+    getGlobalStats: () => client.get('/api/billing/stats'),
+
+    // Enterprise Hierarchy
+    getOrganizations: () => client.get('/api/organizations'),
+    getDepartments: (orgId?: string) => client.get(`/api/departments${orgId ? `?organization_id=${orgId}` : ''}`),
+
+    // Bare Metal Orchestration
+    getBareMetalNodes: () => client.get('/api/baremetal/nodes'),
+    provisionBareMetalNode: (id: string) => client.post(`/api/baremetal/provision?id=${id}`, {}),
+    getBareMetalLogs: (nodeId: string) => client.get(`/api/baremetal/logs?node_id=${nodeId}`),
 };
 
 export default client;

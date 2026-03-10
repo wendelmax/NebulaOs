@@ -1,7 +1,7 @@
 import React from 'react';
 import { api } from '../api/client';
 import ResourceCard from '../components/ResourceCard';
-import { Cpu, HardDrive, Network, Users, LayoutDashboard } from 'lucide-react';
+import { Cpu, HardDrive, Network, Users, LayoutDashboard, Brain, Activity, ChevronRight } from 'lucide-react';
 
 interface GlobalStats {
     total_cpus: number;
@@ -13,10 +13,9 @@ interface GlobalStats {
 }
 
 interface OverviewProps {
-    theme?: 'dark' | 'light';
 }
 
-const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
+const Overview: React.FC<OverviewProps> = () => {
     const [stats, setStats] = React.useState<GlobalStats>({
         total_cpus: 0,
         total_storage: 0,
@@ -29,10 +28,6 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
     React.useEffect(() => {
         const fetchStats = async () => {
             try {
-                // In a real app, we might add a generic stats endpoint to the api client
-                // For now, let's assume we can add it or use a manual axios call if not present
-                // But the plan says "Use the central api client"
-                // Let's check client.ts again to see if I can add getStats there.
                 const resp = await api.getStats();
                 setStats(resp.data);
             } catch (err) {
@@ -44,22 +39,27 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
         return () => clearInterval(interval);
     }, []);
 
-    const logoSrc = theme === 'dark' ? '/logo-dark.png' : '/logo-light.png';
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <header style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={logoSrc} alt="NebulaOS" style={{ width: '160px', height: '160px', objectFit: 'contain' }} />
-                </div>
-                <div>
-                    <h1 style={{ fontSize: '3.5rem', margin: 0, fontWeight: 900, background: 'var(--primary-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Overview <span style={{ fontSize: '1rem', verticalAlign: 'middle', opacity: 0.5 }}>v14.2</span></h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.75rem', fontSize: '1.5rem', fontWeight: 500 }}>Enterprise Control Plane | <span style={{ color: 'var(--primary-light)' }}>Live Data Synchronization Active</span></p>
+        <div className="flex flex-col gap-12 max-w-[1600px] mx-auto">
+            <header className="flex items-end gap-8 mb-4">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="badge badge-success animate-pulse">Live Cluster API</span>
+                        <span className="text-dim text-xs font-bold uppercase tracking-widest">v14.2 // Stable</span>
+                    </div>
+                    <h1 className="text-6xl font-black leading-tight tracking-tighter">
+                        Control <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-fuchsia-500">Intelligence</span>
+                    </h1>
+                    <p className="text-muted text-xl mt-4 font-medium max-w-2xl leading-relaxed">
+                        Unified orchestrator for sovereign infrastructure. Real-time telemetry and automated provisioning across 
+                        <span className="text-main"> Proxmox</span>, <span className="text-main">OpenStack</span>, and <span className="text-main">Bare Metal</span>.
+                    </p>
                 </div>
             </header>
 
             <div className="resource-grid">
                 <ResourceCard
-                    title="Compute Consumption"
+                    title="Compute Fabric"
                     value={stats.total_cpus.toFixed(1)}
                     unit="vCPUs"
                     icon={Cpu}
@@ -67,7 +67,7 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                     color="var(--primary)"
                 />
                 <ResourceCard
-                    title="Storage Tier 1"
+                    title="Cold Storage"
                     value={stats.total_storage.toFixed(1)}
                     unit="TB"
                     icon={HardDrive}
@@ -75,15 +75,15 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                     color="var(--secondary)"
                 />
                 <ResourceCard
-                    title="Egress Traffic"
+                    title="Data Egress"
                     value={stats.total_egress.toFixed(0)}
-                    unit="GB/mo"
+                    unit="GB"
                     icon={Network}
                     trend={28}
                     color="#818cf8"
                 />
                 <ResourceCard
-                    title="Active Tenants"
+                    title="Sovereign Tenants"
                     value={stats.active_tenants.toString()}
                     unit="units"
                     icon={Users}
@@ -91,27 +91,57 @@ const Overview: React.FC<OverviewProps> = ({ theme = 'dark' }) => {
                 />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                <div style={{ gridColumn: 'span 2' }} className="glass p-8 min-h-[400px]">
-                    <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-                        <LayoutDashboard style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} size={48} />
-                        <h3 style={{ color: 'var(--text-muted)' }}>Real-time Performance Metrics</h3>
-                        <p style={{ color: 'var(--primary-light)', fontSize: '0.875rem', fontWeight: 600 }}>Live Telemetry Engine: Active</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 glass p-10 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <LayoutDashboard size={120} />
+                    </div>
+                    <h3 className="text-2xl mb-8 flex items-center gap-3">
+                        <Activity size={24} className="text-primary" />
+                        Live Performance Stream
+                    </h3>
+                    <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/autoborder-white/5">
+                        <div className="relative mb-6">
+                            <div className="absolute inset-0 blur-2xl bg-primary/20 rounded-full animate-pulse"></div>
+                            <LayoutDashboard className="relative text-dim" size={56} />
+                        </div>
+                        <h4 className="text-muted font-bold tracking-tight">Telemetry Engine Initializing...</h4>
+                        <p className="text-dim text-sm mt-2">Connecting to NebulaOS Distributed Data Bus</p>
                     </div>
                 </div>
 
-                <div className="glass" style={{ padding: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1.5rem' }}>Recent Audit Events</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.75rem', borderRadius: '8px' }} className="glass-hover">
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }} />
-                                <div>
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>Audit Event: RESOURCE_PROVISIONED</p>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>2 mins ago | Project: ALPHA-NODE</p>
+                <div className="flex flex-col gap-6">
+                    <div className="glass p-8 bg-gradient-to-br from-indigo-500/5 to-transparent border-indigo-500/10">
+                        <h3 className="text-xl mb-6 flex items-center gap-3">
+                            <Brain size={20} className="text-indigo-400" />
+                            Nebula IQ
+                        </h3>
+                        <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 mb-4">
+                            <p className="text-sm font-medium text-indigo-200">Recommendation Engine</p>
+                            <p className="text-xs text-indigo-300/70 mt-1">Scale Node-A7 to optimize egress costs in Region-Local.</p>
+                        </div>
+                        <button className="btn-primary w-full py-4 text-sm mt-2">
+                            View AI Insights
+                        </button>
+                    </div>
+
+                    <div className="glass p-8">
+                        <h3 className="text-xl mb-6 flex items-center gap-3">
+                            <Activity size={20} className="text-muted" />
+                            System Audit
+                        </h3>
+                        <div className="flex flex-col gap-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-4 items-center p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                                    <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_var(--primary-glow)]" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-bold opacity-80 group-hover:opacity-100 transition-opacity">RESOURCE_PROVISIONED</p>
+                                        <p className="text-[10px] text-muted uppercase font-bold tracking-wider mt-1">2m ago // AlphaNode</p>
+                                    </div>
+                                    <ChevronRight size={14} className="text-dim opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
