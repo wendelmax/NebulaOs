@@ -24,10 +24,17 @@ type ResourceRepository interface {
 }
 
 type CloudProvider interface {
+	HealthCheck
 	Provision(ctx context.Context, resource *Resource) error
 	Decommission(ctx context.Context, resource *Resource) error
 	GetStatus(ctx context.Context, resourceID string) (string, error)
 	AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error
+
+	// Management Extensions
+	ListImages(ctx context.Context) ([]Image, error)
+	DeployContainer(ctx context.Context, container *Container) error
+	ConfigureNetwork(ctx context.Context, network *Network) error
+	AddRoute(ctx context.Context, route *Route) error
 }
 
 type ProviderFactory interface {
@@ -105,4 +112,20 @@ type GSLBRepository interface {
 
 type ResourceAdvisor interface {
 	AnalyzeUsage(ctx context.Context, projectID string) ([]ResourceInsight, error)
+}
+
+type RegionRepository interface {
+	Create(ctx context.Context, region *Region) error
+	GetByID(ctx context.Context, id string) (*Region, error)
+	List(ctx context.Context) ([]*Region, error)
+}
+
+type AvailabilityZoneRepository interface {
+	Create(ctx context.Context, az *AvailabilityZone) error
+	GetByRegion(ctx context.Context, regionID string) ([]*AvailabilityZone, error)
+	List(ctx context.Context) ([]*AvailabilityZone, error)
+}
+
+type HealthCheck interface {
+	Ping(ctx context.Context) error
 }

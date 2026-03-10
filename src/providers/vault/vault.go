@@ -2,7 +2,9 @@ package vault
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/wendelmax/nebulaos/src/api/domain"
 )
@@ -17,6 +19,22 @@ func NewVaultProvider(url, token string) *VaultProvider {
 		URL:   url,
 		Token: token,
 	}
+}
+
+func (p *VaultProvider) Ping(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.URL+"/v1/sys/health", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusTooManyRequests { // Vault returns 429 if uninitialized/sealed but still alive
+		return fmt.Errorf("vault health check failed with status: %d", resp.StatusCode)
+	}
+	return nil
 }
 
 func (p *VaultProvider) StoreSecret(ctx context.Context, key string, value string) error {

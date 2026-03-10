@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/wendelmax/nebulaos/src/api/domain"
 )
@@ -18,6 +19,22 @@ func NewKeycloakProvider(url, clientID string) *KeycloakProvider {
 		URL:      url,
 		ClientID: clientID,
 	}
+}
+
+func (p *KeycloakProvider) Ping(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.URL+"/health/live", nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("keycloak health check failed with status: %d", resp.StatusCode)
+	}
+	return nil
 }
 
 func (p *KeycloakProvider) Authenticate(ctx context.Context, username, password string) (string, error) {

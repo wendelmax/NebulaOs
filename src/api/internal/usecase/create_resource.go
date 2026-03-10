@@ -17,11 +17,11 @@ type CreateResourceInput struct {
 }
 
 type CreateResourceUseCase struct {
-	resourceRepo  domain.ResourceRepository
-	projectRepo   domain.ProjectRepository
-	quotaRepo     domain.QuotaRepository
-	policyService domain.PolicyService
-	provider      domain.CloudProvider
+	resourceRepo    domain.ResourceRepository
+	projectRepo     domain.ProjectRepository
+	quotaRepo       domain.QuotaRepository
+	policyService   domain.PolicyService
+	providerFactory domain.ProviderFactory
 }
 
 func NewCreateResourceUseCase(
@@ -29,14 +29,14 @@ func NewCreateResourceUseCase(
 	projRepo domain.ProjectRepository,
 	qRepo domain.QuotaRepository,
 	pService domain.PolicyService,
-	prov domain.CloudProvider,
+	pFactory domain.ProviderFactory,
 ) *CreateResourceUseCase {
 	return &CreateResourceUseCase{
-		resourceRepo:  resRepo,
-		projectRepo:   projRepo,
-		quotaRepo:     qRepo,
-		policyService: pService,
-		provider:      prov,
+		resourceRepo:    resRepo,
+		projectRepo:     projRepo,
+		quotaRepo:       qRepo,
+		policyService:   pService,
+		providerFactory: pFactory,
 	}
 }
 
@@ -100,5 +100,10 @@ func (uc *CreateResourceUseCase) Execute(ctx context.Context, input CreateResour
 		return err
 	}
 
-	return uc.provider.Provision(ctx, resource)
+	provider, err := uc.providerFactory.GetProvider(input.Provider)
+	if err != nil {
+		return fmt.Errorf("failed to get provider %s: %w", input.Provider, err)
+	}
+
+	return provider.Provision(ctx, resource)
 }

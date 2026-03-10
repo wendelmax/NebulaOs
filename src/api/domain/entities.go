@@ -28,9 +28,10 @@ type Project struct {
 type ResourceType string
 
 const (
-	ComputeResource ResourceType = "compute"
-	NetworkResource ResourceType = "network"
-	StorageResource ResourceType = "storage"
+	ComputeResource   ResourceType = "compute"
+	ContainerResource ResourceType = "container"
+	NetworkResource   ResourceType = "network"
+	StorageResource   ResourceType = "storage"
 )
 
 type Resource struct {
@@ -40,6 +41,8 @@ type Resource struct {
 	Type           ResourceType           `json:"type"`
 	Provider       string                 `json:"provider"`
 	ProviderID     string                 `json:"provider_id"`
+	RegionID       string                 `json:"region_id,omitempty"`
+	ZoneID         string                 `json:"zone_id,omitempty"`
 	State          string                 `json:"state"`
 	Metadata       map[string]interface{} `json:"metadata"`
 	BlueprintID    string                 `json:"blueprint_id,omitempty"`
@@ -78,10 +81,44 @@ type Domain struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type NetworkConfig struct {
-	VPCID      string `json:"vpc_id"`
-	SubnetCIDR string `json:"subnet_cidr"`
-	Gateway    string `json:"gateway"`
+type Network struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Name      string    `json:"name"`
+	CIDR      string    `json:"cidr"`
+	Gateway   string    `json:"gateway"`
+	Provider  string    `json:"provider"`
+	RegionID  string    `json:"region_id,omitempty"`
+	ZoneID    string    `json:"zone_id,omitempty"`
+	State     string    `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Route struct {
+	ID             string    `json:"id"`
+	NetworkID      string    `json:"network_id"`
+	Destination    string    `json:"destination"` // CIDR
+	NextHop        string    `json:"next_hop"`     // IP or "cross-provider-interface"
+	TargetProvider string    `json:"target_provider,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type Container struct {
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Name      string    `json:"name"`
+	Image     string    `json:"image"`
+	CPU       float64   `json:"cpu"`
+	MemoryMB  int       `json:"memory_mb"`
+	State     string    `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Image struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
+	Type     string `json:"type"` // "iso", "template", "docker"
 }
 
 type User struct {
@@ -188,4 +225,32 @@ type GlobalStats struct {
 	ActiveTenants int     `json:"active_tenants"`
 	TrendCPUs     float64 `json:"trend_cpus"`
 	TrendStorage  float64 `json:"trend_storage"`
+}
+
+type InfraPreset struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	BlueprintID string `json:"blueprint_id"`
+}
+
+type AutomaticProvisioningRequest struct {
+	PresetID  string                 `json:"preset_id"`
+	ProjectID string                 `json:"project_id"`
+	Name      string                 `json:"name"`
+	Variables map[string]interface{} `json:"variables"`
+}
+
+type Region struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Location  string `json:"location"`
+	IsDefault bool   `json:"is_default"`
+}
+
+type AvailabilityZone struct {
+	ID       string `json:"id"`
+	RegionID string `json:"region_id"`
+	Name     string `json:"name"`
+	State    string `json:"state"` // "available", "maintenance"
 }

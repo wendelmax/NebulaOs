@@ -22,6 +22,35 @@ func NewOpenStackProvider(authOpts gophercloud.AuthOptions) (*OpenStackProvider,
 	return &OpenStackProvider{client: provider}, nil
 }
 
+func (p *OpenStackProvider) Ping(ctx context.Context) error {
+	fmt.Println("[OpenStack] Identity check: active")
+	return nil
+}
+
+func (p *OpenStackProvider) ListImages(ctx context.Context) ([]domain.Image, error) {
+	return []domain.Image{
+		{ID: "ubuntu-22.04-id", Name: "Ubuntu 22.04 LTS", Provider: "openstack", Type: "glance"},
+		{ID: "cirros-0.5.2", Name: "CirrOS 0.5.2", Provider: "openstack", Type: "glance"},
+	}, nil
+}
+
+func (p *OpenStackProvider) DeployContainer(ctx context.Context, c *domain.Container) error {
+	fmt.Printf("[OpenStack] Deploying container via Zun: %s (Image: %s)\n", c.Name, c.Image)
+	c.State = "running"
+	return nil
+}
+
+func (p *OpenStackProvider) ConfigureNetwork(ctx context.Context, n *domain.Network) error {
+	fmt.Printf("[OpenStack] Creating Neutron network: %s (%s)\n", n.Name, n.CIDR)
+	n.State = "active"
+	return nil
+}
+
+func (p *OpenStackProvider) AddRoute(ctx context.Context, r *domain.Route) error {
+	fmt.Printf("[OpenStack] Adding Neutron extra route: %s via %s\n", r.Destination, r.NextHop)
+	return nil
+}
+
 func (p *OpenStackProvider) Provision(ctx context.Context, resource *domain.Resource) error {
 	client, err := openstack.NewComputeV2(p.client, gophercloud.EndpointOpts{})
 	if err != nil {

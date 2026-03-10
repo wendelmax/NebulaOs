@@ -548,3 +548,79 @@ func (r *InMemoryGSLBRepository) List(ctx context.Context) ([]*domain.GlobalEndp
 	}
 	return list, nil
 }
+
+// --- Region & Zone Repositories ---
+
+type InMemoryRegionRepository struct {
+	mu      sync.RWMutex
+	regions map[string]*domain.Region
+}
+
+func NewInMemoryRegionRepository() *InMemoryRegionRepository {
+	return &InMemoryRegionRepository{regions: make(map[string]*domain.Region)}
+}
+
+func (r *InMemoryRegionRepository) Create(ctx context.Context, reg *domain.Region) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.regions[reg.ID] = reg
+	return nil
+}
+
+func (r *InMemoryRegionRepository) GetByID(ctx context.Context, id string) (*domain.Region, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	reg, ok := r.regions[id]
+	if !ok {
+		return nil, fmt.Errorf("region not found")
+	}
+	return reg, nil
+}
+
+func (r *InMemoryRegionRepository) List(ctx context.Context) ([]*domain.Region, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.Region
+	for _, reg := range r.regions {
+		list = append(list, reg)
+	}
+	return list, nil
+}
+
+type InMemoryAvailabilityZoneRepository struct {
+	mu    sync.RWMutex
+	zones map[string]*domain.AvailabilityZone
+}
+
+func NewInMemoryAvailabilityZoneRepository() *InMemoryAvailabilityZoneRepository {
+	return &InMemoryAvailabilityZoneRepository{zones: make(map[string]*domain.AvailabilityZone)}
+}
+
+func (r *InMemoryAvailabilityZoneRepository) Create(ctx context.Context, az *domain.AvailabilityZone) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.zones[az.ID] = az
+	return nil
+}
+
+func (r *InMemoryAvailabilityZoneRepository) GetByRegion(ctx context.Context, regionID string) ([]*domain.AvailabilityZone, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.AvailabilityZone
+	for _, az := range r.zones {
+		if az.RegionID == regionID {
+			list = append(list, az)
+		}
+	}
+	return list, nil
+}
+
+func (r *InMemoryAvailabilityZoneRepository) List(ctx context.Context) ([]*domain.AvailabilityZone, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var list []*domain.AvailabilityZone
+	for _, az := range r.zones {
+		list = append(list, az)
+	}
+	return list, nil
+}

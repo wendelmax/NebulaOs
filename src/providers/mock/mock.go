@@ -47,6 +47,28 @@ func (p *MockProvider) GetStatus(ctx context.Context, resourceID string) (string
 	return status, nil
 }
 
+func (p *MockProvider) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (p *MockProvider) ListImages(ctx context.Context) ([]domain.Image, error) {
+	return []domain.Image{{ID: "mock-image", Name: "Mock Image", Provider: "mock", Type: "docker"}}, nil
+}
+
+func (p *MockProvider) DeployContainer(ctx context.Context, c *domain.Container) error {
+	c.State = "running"
+	return nil
+}
+
+func (p *MockProvider) ConfigureNetwork(ctx context.Context, n *domain.Network) error {
+	n.State = "active"
+	return nil
+}
+
+func (p *MockProvider) AddRoute(ctx context.Context, r *domain.Route) error {
+	return nil
+}
+
 func (p *MockProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
 	log.Printf("[MockProvider] Attaching Security Group %s to resource %s. Enforcing firewall rules...", sgID, resourceID)
 	return nil

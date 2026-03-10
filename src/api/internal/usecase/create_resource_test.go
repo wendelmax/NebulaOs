@@ -24,6 +24,8 @@ func (s *mockPolicyService) UpdatePolicy(ctx context.Context, policy *domain.Sov
 
 type mockCloudProvider struct{}
 
+func (p *mockCloudProvider) HealthCheck(ctx context.Context) error { return nil }
+func (p *mockCloudProvider) Ping(ctx context.Context) error        { return nil }
 func (p *mockCloudProvider) Provision(ctx context.Context, resource *domain.Resource) error {
 	return nil
 }
@@ -36,6 +38,26 @@ func (p *mockCloudProvider) GetStatus(ctx context.Context, resourceID string) (s
 func (p *mockCloudProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
 	return nil
 }
+func (p *mockCloudProvider) ListImages(ctx context.Context) ([]domain.Image, error) {
+	return nil, nil
+}
+func (p *mockCloudProvider) DeployContainer(ctx context.Context, container *domain.Container) error {
+	return nil
+}
+func (p *mockCloudProvider) ConfigureNetwork(ctx context.Context, network *domain.Network) error {
+	return nil
+}
+func (p *mockCloudProvider) AddRoute(ctx context.Context, route *domain.Route) error {
+	return nil
+}
+
+type mockProviderFactory struct {
+	provider domain.CloudProvider
+}
+
+func (f *mockProviderFactory) GetProvider(name string) (domain.CloudProvider, error) {
+	return f.provider, nil
+}
 
 func TestCreateResourceUseCase_Execute(t *testing.T) {
 	ctx := context.Background()
@@ -47,9 +69,8 @@ func TestCreateResourceUseCase_Execute(t *testing.T) {
 		projRepo := infrastructure.NewInMemoryProjectRepository()
 		quotaRepo := infrastructure.NewInMemoryQuotaRepository()
 		policyService := &mockPolicyService{}
-		provider := &mockCloudProvider{}
-
-		uc := usecase.NewCreateResourceUseCase(resRepo, projRepo, quotaRepo, policyService, provider)
+		factory := &mockProviderFactory{provider: &mockCloudProvider{}}
+		uc := usecase.NewCreateResourceUseCase(resRepo, projRepo, quotaRepo, policyService, factory)
 		projRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: "Project 1", CreatedAt: time.Now()})
 
 		input := usecase.CreateResourceInput{
@@ -80,8 +101,9 @@ func TestCreateResourceUseCase_Execute(t *testing.T) {
 		quotaRepo := infrastructure.NewInMemoryQuotaRepository()
 		policyService := &mockPolicyService{}
 		provider := &mockCloudProvider{}
+		factory := &mockProviderFactory{provider: provider}
 
-		uc := usecase.NewCreateResourceUseCase(resRepo, projRepo, quotaRepo, policyService, provider)
+		uc := usecase.NewCreateResourceUseCase(resRepo, projRepo, quotaRepo, policyService, factory)
 		projRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: "Project 1", CreatedAt: time.Now()})
 
 		// Set a low quota

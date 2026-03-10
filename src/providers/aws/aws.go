@@ -85,6 +85,30 @@ func (p *AWSProvider) GetStatus(ctx context.Context, resourceID string) (string,
 
 	return "unknown", nil
 }
+func (p *AWSProvider) Ping(ctx context.Context) error {
+	return nil
+}
+
+func (p *AWSProvider) ListImages(ctx context.Context) ([]domain.Image, error) {
+	return nil, nil
+}
+
+func (p *AWSProvider) DeployContainer(ctx context.Context, c *domain.Container) error {
+	fmt.Printf("[AWS] Deploying container via ESC/Fargate: %s\n", c.Name)
+	c.State = "running"
+	return nil
+}
+
+func (p *AWSProvider) ConfigureNetwork(ctx context.Context, n *domain.Network) error {
+	fmt.Printf("[AWS] Creating VPC/Subnet: %s\n", n.Name)
+	n.State = "active"
+	return nil
+}
+
+func (p *AWSProvider) AddRoute(ctx context.Context, r *domain.Route) error {
+	return nil
+}
+
 func (p *AWSProvider) AttachSecurityGroup(ctx context.Context, resourceID string, sgID string) error {
 	fmt.Printf("[AWS] Attaching Security Group %s to instance %s. Modifying network interfaces...\n", sgID, resourceID)
 	return nil

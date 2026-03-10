@@ -66,3 +66,36 @@ func (f *ProviderFactory) AttachSecurityGroup(ctx context.Context, resourceID st
 	}
 	return fmt.Errorf("no provider available for SG attachment")
 }
+
+func (f *ProviderFactory) ListImages(ctx context.Context) ([]domain.Image, error) {
+	var allImages []domain.Image
+	for _, p := range f.providers {
+		imgs, _ := p.ListImages(ctx)
+		allImages = append(allImages, imgs...)
+	}
+	return allImages, nil
+}
+
+func (f *ProviderFactory) DeployContainer(ctx context.Context, container *domain.Container) error {
+	// Simple proxy based on some logic or default to proxmox for containers
+	if p, exists := f.providers["proxmox"]; exists {
+		return p.DeployContainer(ctx, container)
+	}
+	return fmt.Errorf("no container provider found")
+}
+
+func (f *ProviderFactory) ConfigureNetwork(ctx context.Context, network *domain.Network) error {
+	if p, ok := f.providers[network.Provider]; ok {
+		return p.ConfigureNetwork(ctx, network)
+	}
+	return fmt.Errorf("provider %s not found for network configuration", network.Provider)
+}
+
+func (f *ProviderFactory) AddRoute(ctx context.Context, route *domain.Route) error {
+	// Proxy to provider factory logic or specific provider
+	return fmt.Errorf("use NetworkManager for cross-provider routing")
+}
+
+func (f *ProviderFactory) Ping(ctx context.Context) error {
+	return nil
+}
