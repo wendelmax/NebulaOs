@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type BareMetalProvider struct {

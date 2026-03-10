@@ -7,7 +7,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type OpenStackProvider struct {

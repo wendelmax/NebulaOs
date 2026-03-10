@@ -3,7 +3,7 @@ package usecase
 import (
 	"context"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type RequestCertificateUseCase struct {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type AuthMiddleware struct {

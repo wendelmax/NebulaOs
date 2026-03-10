@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type KeycloakProvider struct {

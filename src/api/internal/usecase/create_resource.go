@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/domain"
 )
 
 type CreateResourceInput struct {

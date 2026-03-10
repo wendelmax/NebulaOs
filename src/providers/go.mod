@@ -1,15 +1,15 @@
-module github.com/jacksonwendel/nebulaos/src/providers
+module github.com/wendelmax/nebulaos/src/providers
 
 go 1.25.0
 
-replace github.com/jacksonwendel/nebulaos/src/api => ../api
+replace github.com/wendelmax/nebulaos/src/api => ../api
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
 	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.293.0
 	github.com/gophercloud/gophercloud v1.14.1
-	github.com/jacksonwendel/nebulaos/src/api v0.0.0-00010101000000-000000000000
+	github.com/wendelmax/nebulaos/src/api v0.0.0-00010101000000-000000000000
 )
 
 require (

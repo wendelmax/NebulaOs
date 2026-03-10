@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jacksonwendel/nebulaos/src/api/domain"
-	"github.com/jacksonwendel/nebulaos/src/api/internal/infrastructure"
-	"github.com/jacksonwendel/nebulaos/src/api/internal/usecase"
+	"github.com/wendelmax/nebulaos/src/api/domain"
+	"github.com/wendelmax/nebulaos/src/api/internal/infrastructure"
+	"github.com/wendelmax/nebulaos/src/api/internal/usecase"
 )
 
 type mockPolicyService struct{}

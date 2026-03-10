@@ -1,10 +1,10 @@
-module github.com/jacksonwendel/nebulaos/src/api
+module github.com/wendelmax/nebulaos/src/api
 
 go 1.25.0
 
 require (
 	github.com/gophercloud/gophercloud v1.14.1
-	github.com/jacksonwendel/nebulaos/src/providers v0.0.0-00010101000000-000000000000
+	github.com/wendelmax/nebulaos/src/providers v0.0.0-00010101000000-000000000000
 	github.com/lib/pq v1.11.2
 	github.com/nats-io/nats.go v1.49.0
 )
@@ -33,4 +33,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/jacksonwendel/nebulaos/src/providers => ../providers
+replace github.com/wendelmax/nebulaos/src/providers => ../providers

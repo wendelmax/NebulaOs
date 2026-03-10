@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jacksonwendel/nebulaos/src/api/internal/usecase"
+	"github.com/wendelmax/nebulaos/src/api/internal/usecase"
 )
 
 type TenantHandler struct {
