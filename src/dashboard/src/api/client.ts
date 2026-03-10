@@ -27,7 +27,7 @@ export const api = {
     // Auth
     login: (data: any) => client.post('/auth/login', data),
     changePassword: (data: any) => client.post('/auth/change-password', data),
-    getResources: () => client.get('/resources'),
+    getResources: (projectId?: string) => client.get(`/resources${projectId ? `?project_id=${projectId}` : ''}`),
     createResource: (data: any) => client.post('/resources', data),
     getNetworkStatus: (domain: string) => client.get(`/network/certificate?domain=${domain}`),
     getStats: () => client.get('/intelligence/stats'),

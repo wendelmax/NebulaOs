@@ -11,7 +11,7 @@ const ResourcesView: React.FC = () => {
     const fetchResources = async () => {
         setLoading(true);
         try {
-            const resp = await api.getResources();
+            const resp = await api.getResources('v-p1');
             setResources(resp.data || []);
         } catch (err) {
             console.error(err);

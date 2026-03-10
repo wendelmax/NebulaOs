@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS buckets (
     id TEXT PRIMARY KEY,
     project_id TEXT REFERENCES projects(id),
     name TEXT NOT NULL,
+    region TEXT,
     state TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

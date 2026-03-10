@@ -56,9 +56,17 @@ Full transparency into infrastructure costs and consumption patterns.
 ## Platform Orchestration
 
 For a complete, one-click production-ready setup:
+
+**Linux / Mac:**
 ```bash
 ./nebula.sh
 ```
+
+**Windows (PowerShell):**
+```powershell
+.\nebula.ps1
+```
+
 This script automates infrastructure dependencies (Postgres, NATS), seeds the default Enterprise Org, and starts the API/Dashboard.
 
 ## Manual Development Setup

@@ -118,6 +118,12 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 		}
+		
+		// Run database bootstrap (Self-Healing Schema)
+		if err := infrastructure.EnsureSchema(db); err != nil {
+			log.Printf("Warning: Failed to ensure schema: %v. The application might be using an outdated database.", err)
+		}
+
 		tenantRepo = infrastructure.NewPostgresTenantRepository(db)
 		projectRepo = infrastructure.NewPostgresProjectRepository(db)
 		resourceRepo = infrastructure.NewPostgresResourceRepository(db)
@@ -159,62 +165,12 @@ func main() {
 		providerRepo.Create(seedCtx, &domain.Provider{ID: "prov-os-1", Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: "http://openstack:5000/v3", Status: "active", CreatedAt: time.Now()})
 	}
 
-	// Seed internal admin user and hierarchy
-	seedEnterpriseDefaults(orgRepo, deptRepo, userRepo)
+	// Seed internal admin user, defaults and test data
+	seedEnterpriseDefaults(tenantRepo, projectRepo, orgRepo, deptRepo, userRepo, resourceRepo, volumeRepo, bucketRepo)
 
 	fmt.Printf("Repositories initialized (Persistence: %v)\n", dbURL != "")
 	_ = gslbRepo // Explicitly use to avoid lint error until usecases are added
 
-	// Seed test data for Dashboard Verification (v14.2)
-	{
-		ctx := context.Background()
-		// 1. Tenant seeding
-		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t1", Name: "Alpha Corp", CreatedAt: time.Now()})
-		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t2", Name: "Beta Labs", CreatedAt: time.Now()})
-		tenantRepo.Create(ctx, &domain.Tenant{ID: "v-t3", Name: "Gamma Systems", CreatedAt: time.Now()})
-
-		// 2. Project seeding (mandatory for resources FK in Postgres)
-		projectRepo.Create(ctx, &domain.Project{ID: "v-p1", TenantID: "v-t1", Name: "Default Project", CreatedAt: time.Now()})
-
-		// 3. Resource seeding (Compute) - 3 nodes = 6 vCPUs
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n1", ProjectID: "v-p1", Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n2", ProjectID: "v-p1", Name: "Node-2", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n3", ProjectID: "v-p1", Name: "Node-3", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
-
-		// 4. Resource seeding (Storage) - 3 volumes = 1.5 TB
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s1", ProjectID: "v-p1", Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s2", ProjectID: "v-p1", Name: "Vol-2", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s3", ProjectID: "v-p1", Name: "Vol-3", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
-
-		// 5. Blueprint seeding
-		blueprintRepo.Create(ctx, &domain.Blueprint{ID: "bp-k8s", Name: "HA K8s Cluster", Category: "Infrastructure", Description: "Production-ready Kubernetes control plane."})
-		blueprintRepo.Create(ctx, &domain.Blueprint{ID: "bp-db", Name: "Postgres Cluster", Category: "Databases", Description: "HA Postgres with auto-failover."})
-
-		// 6. GSLB seeding
-		gslbRepo.Save(ctx, &domain.GlobalEndpoint{ID: "g-1", Name: "nebula.global", DNSRecord: "api.nebula.global", State: "active", Policy: domain.GSLBPolicy{Strategy: "latency"}})
-
-		// 7. Security Group seeding
-		securityGroupRepo.Create(ctx, &domain.SecurityGroup{
-			ID:        "sg-default",
-			ProjectID: "v-p1",
-			Name:      "default-vpc-sg",
-			Rules: []domain.FirewallRule{
-				{ID: "r-1", Protocol: domain.TCP, FromPort: 80, ToPort: 80, Action: "allow", CreatedAt: time.Now()},
-				{ID: "r-2", Protocol: domain.TCP, FromPort: 443, ToPort: 443, Action: "allow", CreatedAt: time.Now()},
-			},
-			CreatedAt: time.Now(),
-		})
-
-		// 8. Dedicated Storage seeding
-		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s1", ProjectID: "v-p1", Name: "Vol-1", SizeGB: 500, State: "active", CreatedAt: time.Now()})
-		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s2", ProjectID: "v-p1", Name: "Vol-2", SizeGB: 500, State: "active", CreatedAt: time.Now()})
-		volumeRepo.Create(ctx, &domain.Volume{ID: "v-s3", ProjectID: "v-p1", Name: "Vol-3", SizeGB: 500, State: "active", CreatedAt: time.Now()})
-		bucketRepo.Create(ctx, &domain.Bucket{ID: "v-b1", ProjectID: "v-p1", Name: "Assets-Bucket", Region: "us-east-1", State: "active", CreatedAt: time.Now()})
-
-	}
-	
-	// Seed internal admin user and hierarchy
-	seedEnterpriseDefaults(orgRepo, deptRepo, userRepo)
 
 	// Choose Identity Manager (Keycloak or Internal)
 	var identityManager domain.IdentityManager
@@ -779,23 +735,39 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func seedEnterpriseDefaults(orgRepo domain.OrganizationRepository, deptRepo domain.DepartmentRepository, userRepo domain.UserRepository) {
+func seedEnterpriseDefaults(
+	tenantRepo domain.TenantRepository,
+	projectRepo domain.ProjectRepository,
+	orgRepo domain.OrganizationRepository,
+	deptRepo domain.DepartmentRepository,
+	userRepo domain.UserRepository,
+	resourceRepo domain.ResourceRepository,
+	volumeRepo domain.VolumeRepository,
+	bucketRepo domain.BucketRepository,
+) {
 	ctx := context.Background()
 
-	// 1. Seed Default Organization
+	// 1. Seed Default Tenant
+	tenantID := "v-t1"
+	_, err := tenantRepo.GetByID(ctx, tenantID)
+	if err != nil {
+		fmt.Println("[Nebula] Seeding default tenant...")
+		tenantRepo.Create(ctx, &domain.Tenant{ID: tenantID, Name: "Nebula Global Corp", CreatedAt: time.Now()})
+	}
+
+	// 2. Seed Default Organization
 	orgID := "org-nebula-main"
-	org, err := orgRepo.GetByID(ctx, orgID)
+	_, err = orgRepo.GetByID(ctx, orgID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default organization...")
-		org = &domain.Organization{
+		orgRepo.Create(ctx, &domain.Organization{
 			ID:        orgID,
 			Name:      "Nebula Global Corp",
 			CreatedAt: time.Now(),
-		}
-		orgRepo.Create(ctx, org)
+		})
 	}
 
-	// 2. Seed Default Department
+	// 3. Seed Default Department
 	deptID := "dept-core-infra"
 	_, err = deptRepo.GetByID(ctx, deptID)
 	if err != nil {
@@ -805,14 +777,21 @@ func seedEnterpriseDefaults(orgRepo domain.OrganizationRepository, deptRepo doma
 			OrganizationID: orgID,
 			Name:           "Core Infrastructure",
 			CreatedAt:      time.Now(),
-		} )
+		})
 	}
 
-	// 3. Seed Admin User
+	// 4. Seed Default Project
+	projectID := "v-p1"
+	_, err = projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		fmt.Println("[Nebula] Seeding default project...")
+		projectRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: "Nebula Core Project", CreatedAt: time.Now()})
+	}
+
+	// 5. Seed Admin User
 	admin, err := userRepo.GetByUsername(ctx, "admin")
 	if err != nil || admin == nil {
 		fmt.Println("[Nebula] Seeding default administrator...")
-		// Use a temporary InternalIdentityManager just for hashing
 		tempAuth := services.NewInternalIdentityManager(userRepo, "temp")
 		hash, _ := tempAuth.HashPassword("admin")
 		userRepo.Create(ctx, &domain.User{
@@ -820,10 +799,21 @@ func seedEnterpriseDefaults(orgRepo domain.OrganizationRepository, deptRepo doma
 			Username:           "admin",
 			PasswordHash:       hash,
 			Email:              "admin@nebula.local",
-			TenantID:           "v-t1", // Kept for legacy compatibility
+			TenantID:           tenantID,
 			MustChangePassword: true,
 			CreatedAt:          time.Now(),
 		})
+	}
+
+	// 6. Seed Default Resources if project is empty
+	resources, _ := resourceRepo.GetByProject(ctx, projectID)
+	if len(resources) == 0 {
+		fmt.Println("[Nebula] Seeding initial resources...")
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n1", ProjectID: projectID, Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s1", ProjectID: projectID, Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
+		
+		volumeRepo.Create(ctx, &domain.Volume{ID: "v-vol-1", ProjectID: projectID, Name: "Primary-OS-Disk", SizeGB: 100, State: "active", CreatedAt: time.Now()})
+		bucketRepo.Create(ctx, &domain.Bucket{ID: "v-b1", ProjectID: projectID, Name: "Global-Assets", Region: "us-east-1", State: "active", CreatedAt: time.Now()})
 	}
 }
 

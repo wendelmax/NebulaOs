@@ -7,7 +7,16 @@ import (
 
 	"github.com/wendelmax/nebulaos/src/api/domain"
 	"github.com/lib/pq"
+	_ "embed"
 )
+
+//go:embed schema.sql
+var schemaSQL string
+
+func EnsureSchema(db *sql.DB) error {
+	_, err := db.Exec(schemaSQL)
+	return err
+}
 
 var _ domain.TenantRepository = (*PostgresTenantRepository)(nil)
 var _ domain.ProjectRepository = (*PostgresProjectRepository)(nil)
@@ -357,23 +366,23 @@ func NewPostgresBucketRepository(db *sql.DB) *PostgresBucketRepository {
 }
 
 func (r *PostgresBucketRepository) Create(ctx context.Context, b *domain.Bucket) error {
-	query := `INSERT INTO buckets (id, project_id, name, state, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.db.ExecContext(ctx, query, b.ID, b.ProjectID, b.Name, b.State, b.CreatedAt)
+	query := `INSERT INTO buckets (id, project_id, name, region, state, created_at) VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.db.ExecContext(ctx, query, b.ID, b.ProjectID, b.Name, b.Region, b.State, b.CreatedAt)
 	return err
 }
 
 func (r *PostgresBucketRepository) GetByID(ctx context.Context, id string) (*domain.Bucket, error) {
-	query := `SELECT id, project_id, name, state, created_at FROM buckets WHERE id = $1`
+	query := `SELECT id, project_id, name, region, state, created_at FROM buckets WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 	var b domain.Bucket
-	if err := row.Scan(&b.ID, &b.ProjectID, &b.Name, &b.State, &b.CreatedAt); err != nil {
+	if err := row.Scan(&b.ID, &b.ProjectID, &b.Name, &b.Region, &b.State, &b.CreatedAt); err != nil {
 		return nil, err
 	}
 	return &b, nil
 }
 
 func (r *PostgresBucketRepository) ListByProject(ctx context.Context, projectID string) ([]*domain.Bucket, error) {
-	query := `SELECT id, project_id, name, state, created_at FROM buckets WHERE project_id = $1`
+	query := `SELECT id, project_id, name, region, state, created_at FROM buckets WHERE project_id = $1`
 	rows, err := r.db.QueryContext(ctx, query, projectID)
 	if err != nil {
 		return nil, err
@@ -383,7 +392,7 @@ func (r *PostgresBucketRepository) ListByProject(ctx context.Context, projectID 
 	var buckets []*domain.Bucket
 	for rows.Next() {
 		var b domain.Bucket
-		if err := rows.Scan(&b.ID, &b.ProjectID, &b.Name, &b.State, &b.CreatedAt); err != nil {
+		if err := rows.Scan(&b.ID, &b.ProjectID, &b.Name, &b.Region, &b.State, &b.CreatedAt); err != nil {
 			return nil, err
 		}
 		buckets = append(buckets, &b)
