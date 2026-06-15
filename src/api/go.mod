@@ -1,6 +1,6 @@
 module github.com/wendelmax/nebulaos/src/api
 
-go 1.25.0
+go 1.26.4
 
 require (
 	github.com/gophercloud/gophercloud v1.14.1

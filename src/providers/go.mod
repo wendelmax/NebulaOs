@@ -1,6 +1,6 @@
 module github.com/wendelmax/nebulaos/src/providers
 
-go 1.25.0
+go 1.26.4
 
 replace github.com/wendelmax/nebulaos/src/api => ../api
 
