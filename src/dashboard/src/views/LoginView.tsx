@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { api } from '../api/client';
 import { jwtDecode } from 'jwt-decode';
 import { Lock, User, Rocket, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useLocale } from '../contexts/LocaleContext';
 
 interface LoginViewProps {
     onLogin: (token: string, mustChange: boolean) => void;
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
+    const { t } = useLocale();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -24,7 +26,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             const decoded: any = jwtDecode(token);
             onLogin(token, decoded.must_change_password);
         } catch (err: any) {
-            setError(err.response?.data || 'Access denied. Please check your credentials.');
+            setError(err.response?.data || t.auth.error);
         } finally {
             setLoading(false);
         }
@@ -38,7 +40,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                         <Rocket size={40} className="text-accent-primary" />
                     </div>
                     <h1>NebulaOS</h1>
-                    <p className="subtitle">Next-Gen Infrastructure Orchestrator</p>
+                    <p className="subtitle">{t.login.subtitle}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
@@ -50,12 +52,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                     )}
 
                     <div className="input-group-premium">
-                        <label>Identity</label>
+                        <label>{t.login.identity}</label>
                         <div className="input-with-icon">
                             <User size={18} />
                             <input 
                                 type="text" 
-                                placeholder="Username" 
+                                placeholder={t.auth.usernamePlaceholder} 
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
@@ -64,12 +66,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                     </div>
 
                     <div className="input-group-premium">
-                        <label>Credentials</label>
+                        <label>{t.login.credentials}</label>
                         <div className="input-with-icon">
                             <Lock size={18} />
                             <input 
                                 type="password" 
-                                placeholder="Password" 
+                                placeholder={t.auth.passwordPlaceholder} 
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -82,14 +84,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                         className="btn-premium btn-primary full-width"
                         disabled={loading}
                     >
-                        {loading ? 'Authenticating...' : 'Enter Dashboard'}
+                        {loading ? t.login.authenticating : t.login.enter}
                     </button>
                 </form>
 
                 <div className="login-footer">
                     <div className="security-badge">
                         <ShieldCheck size={14} />
-                        <span>Production Hardened v14.2</span>
+                        <span>{t.login.securityBadge}</span>
                     </div>
                 </div>
             </div>

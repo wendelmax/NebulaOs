@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Server, Trash2, ExternalLink, RefreshCw, Filter, Search } from 'lucide-react';
 import ResourceWizard from '../components/ResourceWizard';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const ResourcesView: React.FC = () => {
+    const { t } = useLocale();
     const [resources, setResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showWizard, setShowWizard] = useState(false);
@@ -38,18 +40,18 @@ const ResourcesView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Server size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Compute Fabric</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.resources.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Infrastructure Hub</h1>
-                    <p className="text-muted mt-2 font-medium">Manage and monitor multi-cloud compute assets.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.resources.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.resources.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchResources}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Refresh
+                        {t.resources.refresh}
                     </button>
                     <button className="btn-primary" onClick={() => setShowWizard(true)}>
-                        Deploy Resource
+                        {t.resources.deploy}
                     </button>
                 </div>
             </header>
@@ -59,12 +61,12 @@ const ResourcesView: React.FC = () => {
                     <Search size={18} className="text-muted" />
                     <input
                         type="text"
-                        placeholder="Search assets by ID, node or provider..."
+                        placeholder={t.resources.searchPlaceholder}
                     />
                 </div>
                 <button className="btn-secondary">
                     <Filter size={18} />
-                    Filters
+                    {t.resources.filters}
                 </button>
             </div>
 
@@ -72,11 +74,11 @@ const ResourcesView: React.FC = () => {
                 <table>
                     <thead>
                         <tr>
-                            <th>Instance Detail</th>
-                            <th>Identity</th>
-                            <th>Provider Context</th>
-                            <th>Deployment State</th>
-                            <th style={{ textAlign: 'right' }}>Management</th>
+                            <th>{t.resources.colInstance}</th>
+                            <th>{t.resources.colIdentity}</th>
+                            <th>{t.resources.colProvider}</th>
+                            <th>{t.resources.colState}</th>
+                            <th style={{ textAlign: 'right' }}>{t.resources.colManagement}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -85,7 +87,7 @@ const ResourcesView: React.FC = () => {
                                 <td colSpan={5} className="py-24 text-center text-muted font-medium bg-transparent border-none">
                                     <div className="flex flex-col items-center gap-4 opacity-40">
                                         <Server size={48} />
-                                        <p>No active resources detected in this sector.</p>
+                                        <p>{t.resources.noResources}</p>
                                     </div>
                                 </td>
                             </tr>

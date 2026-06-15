@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { api } from '../api/client';
 import { KeyRound, Mail, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { useLocale } from '../contexts/LocaleContext';
 
 interface ChangePasswordViewProps {
     onComplete: () => void;
 }
 
 const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) => {
+    const { t } = useLocale();
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,12 +22,12 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
         setError('');
         
         if (newPassword !== confirmPassword) {
-            setError('Passwords do not match');
+            setError(t.changePassword.mismatch);
             return;
         }
 
         if (newPassword.length < 6) {
-            setError('New password must be at least 6 characters long');
+            setError(t.changePassword.tooShort);
             return;
         }
 
@@ -41,7 +43,7 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                 onComplete();
             }, 2000);
         } catch (err: any) {
-            setError(err.response?.data || 'Failed to update security credentials.');
+            setError(err.response?.data || t.changePassword.failed);
         } finally {
             setLoading(false);
         }
@@ -54,15 +56,15 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                     <div className="login-logo text-accent-primary animate-bounce-slow">
                         <ShieldAlert size={40} />
                     </div>
-                    <h1>Security Protocol</h1>
-                    <p className="subtitle text-warning">Mandatory password change required for initial access.</p>
+                    <h1>{t.changePassword.title}</h1>
+                    <p className="subtitle text-warning">{t.changePassword.description}</p>
                 </div>
 
                 {success ? (
                     <div className="security-success-overlay animate-fade-in">
                         <CheckCircle2 size={64} className="text-accent-secondary mb-4" />
-                        <h2>Credentials Secured</h2>
-                        <p>Redirecting to dashboard...</p>
+                        <h2>{t.changePassword.success}</h2>
+                        <p>{t.changePassword.redirecting}</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="login-form">
@@ -74,12 +76,12 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                         )}
 
                         <div className="input-group-premium">
-                            <label>Current Credentials</label>
-                            <div className="input-with-icon">
-                                <KeyRound size={18} />
-                                <input 
-                                    type="password" 
-                                    placeholder="Current Password (admin)" 
+                        <label>{t.changePassword.currentLabel}</label>
+                        <div className="input-with-icon">
+                            <KeyRound size={18} />
+                            <input 
+                                type="password" 
+                                placeholder={t.changePassword.currentPlaceholder} 
                                     value={oldPassword}
                                     onChange={(e) => setOldPassword(e.target.value)}
                                     required
@@ -90,12 +92,12 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                         <div className="divider-premium"></div>
 
                         <div className="input-group-premium">
-                            <label>New Security Code</label>
+                            <label>{t.changePassword.newLabel}</label>
                             <div className="input-with-icon">
                                 <KeyRound size={18} />
                                 <input 
                                     type="password" 
-                                    placeholder="New Password" 
+                                    placeholder={t.changePassword.newPlaceholder} 
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     required
@@ -104,12 +106,12 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                         </div>
 
                         <div className="input-group-premium">
-                            <label>Verify Security Code</label>
+                            <label>{t.changePassword.confirmLabel}</label>
                             <div className="input-with-icon">
                                 <KeyRound size={18} />
                                 <input 
                                     type="password" 
-                                    placeholder="Confirm New Password" 
+                                    placeholder={t.changePassword.confirmPlaceholder} 
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     required
@@ -118,12 +120,12 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                         </div>
 
                         <div className="input-group-premium">
-                            <label>Recovery Email</label>
+                            <label>{t.changePassword.emailLabel}</label>
                             <div className="input-with-icon">
                                 <Mail size={18} />
                                 <input 
                                     type="email" 
-                                    placeholder="your@email.com" 
+                                    placeholder={t.changePassword.emailPlaceholder} 
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -136,7 +138,7 @@ const ChangePasswordView: React.FC<ChangePasswordViewProps> = ({ onComplete }) =
                             className="btn-premium btn-primary full-width mt-4"
                             disabled={loading}
                         >
-                            {loading ? 'Updating Protocols...' : 'Update & Proceed'}
+                            {loading ? t.changePassword.submitting : t.changePassword.submit}
                         </button>
                     </form>
                 )}

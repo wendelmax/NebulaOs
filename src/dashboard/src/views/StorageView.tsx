@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { HardDrive, Database, Plus, Search, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const StorageView: React.FC = () => {
+    const { t } = useLocale();
     const [volumes, setVolumes] = useState<any[]>([]);
     const [buckets, setBuckets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,19 +36,19 @@ const StorageView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <HardDrive size={14} className="text-secondary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Persistence Layer</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.storage.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Storage Fabric</h1>
-                    <p className="text-muted mt-2 font-medium">Manage block volumes and object storage buckets across providers.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.storage.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.storage.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchData}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Refresh
+                        {t.storage.refresh}
                     </button>
                     <button className="btn-primary">
                         <Plus size={20} className="mr-2" />
-                        Allocate Space
+                        {t.storage.allocate}
                     </button>
                 </div>
             </header>
@@ -91,35 +93,35 @@ const StorageView: React.FC = () => {
                 {volumes.length === 0 && buckets.length === 0 && !loading && (
                     <div className="lg:col-span-4 glass p-12 text-center flex flex-col items-center gap-4 opacity-30">
                         <HardDrive size={48} />
-                        <p className="font-medium text-lg italic">No active persistence volumes detected.</p>
+                        <p className="font-medium text-lg italic">{t.storage.noVolumes}</p>
                     </div>
                 )}
             </div>
 
             <div className="mt-4">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold tracking-tight">Sector Inventory</h3>
+                    <h3 className="text-xl font-bold tracking-tight">{t.storage.sectorInventory}</h3>
                     <div className="search-box">
                         <Search size={18} className="text-muted" />
-                        <input type="text" placeholder="Search volumes, segments or buckets..." />
+                        <input type="text" placeholder={t.storage.searchPlaceholder} />
                     </div>
                 </div>
 
                 <table>
                     <thead>
                         <tr>
-                            <th>Resource Cluster</th>
-                            <th>Segment Type</th>
-                            <th>Health</th>
-                            <th>Raw Capacity</th>
-                            <th>Region Context</th>
+                            <th>{t.storage.colResource}</th>
+                            <th>{t.storage.colType}</th>
+                            <th>{t.storage.colHealth}</th>
+                            <th>{t.storage.colCapacity}</th>
+                            <th>{t.storage.colRegion}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {volumes.map(vol => (
                             <tr key={vol.id}>
                                 <td className="font-bold text-main/90">{vol.name}</td>
-                                <td className="text-dim text-xs font-bold uppercase tracking-widest">Block Store</td>
+                                <td className="text-dim text-xs font-bold uppercase tracking-widest">{t.storage.blockStore}</td>
                                 <td><span className="badge badge-success">{vol.state}</span></td>
                                 <td className="font-mono text-sm">{vol.size_gb} GB</td>
                                 <td className="text-[10px] font-black tracking-tighter text-dim uppercase">{vol.provider_id || 'LOCAL-NODE'}</td>
@@ -128,7 +130,7 @@ const StorageView: React.FC = () => {
                         {buckets.map(buck => (
                             <tr key={buck.id}>
                                 <td className="font-bold text-main/90">{buck.name}</td>
-                                <td className="text-dim text-xs font-bold uppercase tracking-widest">Object (S3)</td>
+                                <td className="text-dim text-xs font-bold uppercase tracking-widest">{t.storage.objectS3}</td>
                                 <td><span className="badge badge-success">{buck.state}</span></td>
                                 <td className="font-mono text-sm opacity-60">DYNAMIC</td>
                                 <td className="text-[10px] font-black tracking-tighter text-dim uppercase">{buck.region}</td>

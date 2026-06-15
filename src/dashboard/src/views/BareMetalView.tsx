@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Activity, Terminal, Play, RefreshCw, Cpu, Database } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const BareMetalView: React.FC = () => {
+    const { t } = useLocale();
     const [nodes, setNodes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedNode, setSelectedNode] = useState<any | null>(null);
@@ -56,17 +58,17 @@ const BareMetalView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Server size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Physical Fabric</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.baremetal.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Bare Metal Inventory</h1>
-                    <p className="text-muted mt-2 font-medium">Manage and provision hardware-level compute resources.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.baremetal.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.baremetal.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchNodes}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Scan Network
+                        {t.baremetal.scanNetwork}
                     </button>
-                    <button className="btn-primary">Add Physical Node</button>
+                    <button className="btn-primary">{t.baremetal.addNode}</button>
                 </div>
             </header>
 
@@ -74,8 +76,8 @@ const BareMetalView: React.FC = () => {
                 {/* Node List */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">Physical Capacity</h3>
-                        <span className="badge badge-secondary">{nodes.length} Nodes</span>
+                        <h3 className="text-lg font-bold">{t.baremetal.physicalCapacity}</h3>
+                        <span className="badge badge-secondary">{nodes.length} {t.baremetal.nodes}</span>
                     </div>
                     
                     <div className="flex flex-col gap-3">
@@ -108,15 +110,15 @@ const BareMetalView: React.FC = () => {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/5">
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] uppercase tracking-tighter text-muted">CPU</span>
-                                        <span className="text-sm font-bold text-main">{node.cpu_cores} Cores</span>
+                                        <span className="text-[9px] uppercase tracking-tighter text-muted">{t.baremetal.cpu}</span>
+                                        <span className="text-sm font-bold text-main">{node.cpu_cores} {t.baremetal.cores}</span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] uppercase tracking-tighter text-muted">RAM</span>
+                                        <span className="text-[9px] uppercase tracking-tighter text-muted">{t.baremetal.ram}</span>
                                         <span className="text-sm font-bold text-main">{node.memory_gb} GB</span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[9px] uppercase tracking-tighter text-muted">Storage</span>
+                                        <span className="text-[9px] uppercase tracking-tighter text-muted">{t.baremetal.storage}</span>
                                         <span className="text-sm font-bold text-main">{node.disk_gb} GB</span>
                                     </div>
                                 </div>
@@ -135,7 +137,7 @@ const BareMetalView: React.FC = () => {
                                         <div className="p-2 bg-primary/20 rounded-lg text-primary">
                                             <Activity size={18} />
                                         </div>
-                                        <h3 className="text-xl font-bold">Hardware Ops</h3>
+                                        <h3 className="text-xl font-bold">{t.baremetal.hardwareOps}</h3>
                                     </div>
                                     <button 
                                         className="btn-primary py-2 px-4 text-sm"
@@ -143,35 +145,35 @@ const BareMetalView: React.FC = () => {
                                         disabled={selectedNode.state === 'provisioning'}
                                     >
                                         <Play size={14} />
-                                        Provision iPXE
+                                        {t.baremetal.provisionIPXE}
                                     </button>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
                                         <div className="text-xs text-muted mb-1 flex items-center gap-1">
-                                            <Activity size={12} /> IPMI ADDR
+                                            <Activity size={12} /> {t.baremetal.ipmiAddr}
                                         </div>
-                                        <div className="font-mono text-sm">{selectedNode.ipmi_address || 'Not Configured'}</div>
+                                        <div className="font-mono text-sm">{selectedNode.ipmi_address || t.baremetal.notConfigured}</div>
                                     </div>
                                     <div className="p-4 rounded-xl bg-white/3 border border-white/5">
                                         <div className="text-xs text-muted mb-1 flex items-center gap-1">
-                                            <Database size={12} /> DEPT ID
+                                            <Database size={12} /> {t.baremetal.deptId}
                                         </div>
-                                        <div className="font-mono text-sm">{selectedNode.department_id || 'Global'}</div>
+                                        <div className="font-mono text-sm">{selectedNode.department_id || t.baremetal.global}</div>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-3">
                                     <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-dim">
-                                        <div className="flex items-center gap-2"><Terminal size={14} /> Provisioning Logs</div>
+                                        <div className="flex items-center gap-2">                                        <Terminal size={14} /> {t.baremetal.provisioningLogs}</div>
                                         <span className="animate-pulse flex items-center gap-1">
-                                            <div className="w-1 h-1 bg-primary rounded-full" /> Live
+                                            <div className="w-1 h-1 bg-primary rounded-full" />                                             {t.baremetal.live}
                                         </span>
                                     </div>
                                     <div className="console shadow-inner">
                                         {logs.length === 0 ? (
-                                            <div className="text-muted italic opacity-50">Waiting for events...</div>
+                                            <div className="text-muted italic opacity-50">{t.baremetal.waitingEvents}</div>
                                         ) : (
                                             logs.map((log, idx) => (
                                                 <div key={idx} className="flex gap-4 mb-2">
@@ -188,8 +190,8 @@ const BareMetalView: React.FC = () => {
                     ) : (
                         <div className="glass p-12 flex flex-col items-center justify-center text-center opacity-40 min-h-[400px]">
                             <Cpu size={64} className="mb-4" />
-                            <h3 className="text-xl font-bold">No Node Selected</h3>
-                            <p className="text-muted mt-2 max-w-[300px]">Select a physical node from the registry to view hardware state and logs.</p>
+                            <h3 className="text-xl font-bold">{t.baremetal.noNodeSelected}</h3>
+                            <p className="text-muted mt-2 max-w-[300px]">{t.baremetal.noNodeDesc}</p>
                         </div>
                     )}
                 </div>

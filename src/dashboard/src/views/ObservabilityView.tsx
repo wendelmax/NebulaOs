@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Zap, HeartPulse, BarChart3, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const ObservabilityView: React.FC = () => {
+    const { t } = useLocale();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -30,15 +32,15 @@ const ObservabilityView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Activity size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Platform Core</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.observability.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Mission Control</h1>
-                    <p className="text-muted mt-2 font-medium">Real-time telemetry and health diagnostics for your cloud plane.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.observability.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.observability.description}</p>
                 </div>
-                <button className="btn-secondary" onClick={fetchData}>
-                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
+                    <button className="btn-secondary" onClick={fetchData}>
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        {t.observability.refresh}
+                    </button>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -50,29 +52,29 @@ const ObservabilityView: React.FC = () => {
                     <div className="text-5xl font-black text-main tracking-tighter mb-1">
                         {stats ? '100%' : '--'}
                     </div>
-                    <div className="text-xs font-black text-dim uppercase tracking-widest">Uptime Probability</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest">{t.observability.uptime}</div>
                 </div>
 
                 <div className="glass p-8 bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/10 group">
                     <div className="flex justify-between items-center mb-6">
                         <Zap size={24} className="text-amber-500" />
-                        <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-widest">Optimized</span>
+                        <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-widest">{t.observability.optimized}</span>
                     </div>
                     <div className="text-5xl font-black text-main tracking-tighter mb-1">
                         {stats ? '42ms' : '--'}
                     </div>
-                    <div className="text-xs font-black text-dim uppercase tracking-widest">Sector Latency</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest">{t.observability.latency}</div>
                 </div>
 
                 <div className="glass p-8 bg-gradient-to-br from-primary/5 to-transparent border-primary/10 group">
                     <div className="flex justify-between items-center mb-6">
                         <BarChart3 size={24} className="text-primary" />
-                        <span className="text-[10px] font-black text-primary/80 uppercase tracking-widest">Throughput</span>
+                        <span className="text-[10px] font-black text-primary/80 uppercase tracking-widest">{t.observability.throughputLabel}</span>
                     </div>
                     <div className="text-5xl font-black text-main tracking-tighter mb-1">
                         {stats ? (stats.total_egress * 10).toFixed(0) : '--'}
                     </div>
-                    <div className="text-xs font-black text-dim uppercase tracking-widest">Requests / Min</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest">{t.observability.throughput}</div>
                 </div>
             </div>
 
@@ -84,10 +86,9 @@ const ObservabilityView: React.FC = () => {
                     <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary animate-pulse">
                         <Activity size={40} />
                     </div>
-                    <h3 className="text-2xl font-bold tracking-tight text-main/90">Establishing Neural Stream</h3>
+                    <h3 className="text-2xl font-bold tracking-tight text-main/90">{t.observability.neuralStream}</h3>
                     <p className="text-sm text-dim max-w-sm text-center leading-relaxed font-medium">
-                        Synchronizing with NebulaOS Telemetry Clusters. 
-                        Real-time geospatial metrics visualization will materialize upon secure handshake.
+                        {t.observability.neuralDesc}
                     </p>
                     <div className="flex gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.3s]" />
@@ -100,14 +101,14 @@ const ObservabilityView: React.FC = () => {
             <div className="glass p-10 mt-4 border-white/10">
                 <div className="flex items-center gap-3 mb-8">
                     <HeartPulse size={20} className="text-dim" />
-                    <h2 className="text-xl font-bold tracking-tight">Component Health Probes</h2>
+                    <h2 className="text-xl font-bold tracking-tight">{t.observability.healthProbes}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                        { name: 'Identity Engine', status: 'Active', latency: '12ms', color: 'emerald' },
-                        { name: 'Secret Vault', status: 'Active', latency: '8ms', color: 'emerald' },
-                        { name: 'Audit Broker', status: 'Connected', latency: '4ms', color: 'primary' },
-                        { name: 'Provider Factory', status: 'Healthy', latency: '<1ms', color: 'emerald' }
+                        { name: t.observability.identityEngine, status: 'Active', latency: '12ms', color: 'emerald' },
+                        { name: t.observability.secretVault, status: 'Active', latency: '8ms', color: 'emerald' },
+                        { name: t.observability.auditBroker, status: 'Connected', latency: '4ms', color: 'primary' },
+                        { name: t.observability.providerFactory, status: 'Healthy', latency: '<1ms', color: 'emerald' }
                     ].map(comp => (
                         <div key={comp.name} className="flex justify-between items-center p-6 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
                             <div className="flex items-center gap-4">

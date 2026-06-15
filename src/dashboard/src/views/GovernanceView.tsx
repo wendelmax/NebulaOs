@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, FileText, RefreshCw, Landmark } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const GovernanceView: React.FC = () => {
+    const { t } = useLocale();
     const [policy, setPolicy] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -28,14 +30,14 @@ const GovernanceView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Landmark size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Sovereign Authority</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.governance.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Compliance Fabric</h1>
-                    <p className="text-muted mt-2 font-medium">Enforcing policy, quotas, and sovereign audit standards across global clusters.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.governance.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.governance.description}</p>
                 </div>
                 <button className="btn-secondary" onClick={fetchData}>
                     <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    Audit Sync
+                    {t.governance.auditSync}
                 </button>
             </header>
 
@@ -43,7 +45,7 @@ const GovernanceView: React.FC = () => {
                 <div className="glass p-8 flex flex-col gap-8 group">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xs font-black uppercase tracking-widest text- dim italic">Resource Quota // 01</h3>
-                        <span className="text-lg font-black text-main leading-none">CPU</span>
+                        <span className="text-lg font-black text-main leading-none">{t.governance.quotaCPU}</span>
                     </div>
                     <div className="flex flex-col gap-3">
                         <div className="flex justify-between items-end">
@@ -59,7 +61,7 @@ const GovernanceView: React.FC = () => {
                 <div className="glass p-8 flex flex-col gap-8 group">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xs font-black uppercase tracking-widest text- dim italic">Resource Quota // 02</h3>
-                        <span className="text-lg font-black text-main leading-none">RAM</span>
+                        <span className="text-lg font-black text-main leading-none">{t.governance.quotaRAM}</span>
                     </div>
                     <div className="flex flex-col gap-3">
                         <div className="flex justify-between items-end">
@@ -77,9 +79,9 @@ const GovernanceView: React.FC = () => {
                         <ShieldCheck size={32} />
                     </div>
                     <div>
-                        <div className="text-[10px] font-black text-dim uppercase tracking-widest mb-1">Audit Posture</div>
+                        <div className="text-[10px] font-black text-dim uppercase tracking-widest mb-1">{t.governance.auditPosture}</div>
                         <h4 className="text-lg font-black text-main tracking-tight leading-none uppercase italic">
-                            {policy?.enforce_sovereignty ? 'Fully Compliant' : 'Monitoring Active'}
+                            {policy?.enforce_sovereignty ? t.governance.compliant : t.governance.monitoring}
                         </h4>
                     </div>
                 </div>
@@ -88,7 +90,7 @@ const GovernanceView: React.FC = () => {
             <div className="glass p-10 mt-4 border-white/10">
                 <div className="flex items-center gap-3 mb-10 pb-4 border-b border-white/5">
                     <FileText size={20} className="text-dim" />
-                    <h2 className="text-2xl font-bold tracking-tight">Geospatial Audit Stream</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{t.governance.auditStream}</h2>
                 </div>
                 <div className="flex flex-col gap-2">
                     {[1, 2, 3, 4, 5].map(i => (
@@ -106,7 +108,7 @@ const GovernanceView: React.FC = () => {
                 </div>
                 
                 <button className="w-full py-4 mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-dim hover:text-main transition-colors border border-dashed border-white/10 rounded-2xl hover:bg-white/5">
-                    Load Archive logs
+                    {t.governance.loadArchives}
                 </button>
             </div>
         </div>

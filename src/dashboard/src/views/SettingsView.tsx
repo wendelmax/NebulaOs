@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Cloud, CreditCard, ChevronRight, Trash2, Globe, RefreshCw, Key, Settings } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const SettingsView: React.FC = () => {
+    const { t } = useLocale();
     const [activeSection, setActiveSection] = useState('providers');
     const [providers, setProviders] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -17,11 +19,11 @@ const SettingsView: React.FC = () => {
     });
 
     const sections = [
-        { id: 'profile', icon: User, label: 'Neural Identity', desc: 'Secure account details and profile verification.' },
-        { id: 'notifications', icon: Bell, label: 'Pulse Alerts', desc: 'Configure platform telemetry and system signals.' },
-        { id: 'security', icon: Shield, label: 'Shield & Core', desc: 'Manage cryptographic keys and access tokens.' },
-        { id: 'providers', icon: Cloud, label: 'Cloud Sectors', desc: 'Connect and bridge distributed cloud clusters.' },
-        { id: 'billing', icon: CreditCard, label: 'Fiscal Core', desc: 'Manage capital provision and consumption nodes.' }
+        { id: 'profile', icon: User, label: t.settings.sections.profile.label, desc: t.settings.sections.profile.desc },
+        { id: 'notifications', icon: Bell, label: t.settings.sections.notifications.label, desc: t.settings.sections.notifications.desc },
+        { id: 'security', icon: Shield, label: t.settings.sections.security.label, desc: t.settings.sections.security.desc },
+        { id: 'providers', icon: Cloud, label: t.settings.sections.providers.label, desc: t.settings.sections.providers.desc },
+        { id: 'billing', icon: CreditCard, label: t.settings.sections.billing.label, desc: t.settings.sections.billing.desc }
     ];
 
     useEffect(() => {
@@ -55,7 +57,7 @@ const SettingsView: React.FC = () => {
     };
 
     const handleDeleteProvider = async (id: string) => {
-        if (!confirm("Are you sure you want to decommission this provider?")) return;
+        if (!confirm(t.settings.providers.confirmDelete)) return;
         try {
             await api.deleteProvider(id);
             fetchProviders();
@@ -68,14 +70,14 @@ const SettingsView: React.FC = () => {
         <div className="flex flex-col gap-10">
             <header className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-main/90">Infrastructure Sectors</h2>
-                    <p className="text-sm text-dim mt-2 font-medium">Manage primary and secondary cloud provider clusters.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-main/90">{t.settings.providers.title}</h2>
+                    <p className="text-sm text-dim mt-2 font-medium">{t.settings.providers.description}</p>
                 </div>
                 <button 
                     onClick={() => setShowAddProvider(!showAddProvider)}
                     className={showAddProvider ? 'btn-secondary' : 'btn-primary'}
                 >
-                    {showAddProvider ? 'Abandon Declaration' : 'Declare New Sector'}
+                    {showAddProvider ? t.settings.providers.cancel : t.settings.providers.add}
                 </button>
             </header>
 
@@ -83,18 +85,18 @@ const SettingsView: React.FC = () => {
                 <form onSubmit={handleAddProvider} className="glass p-10 bg-gradient-to-br from-primary/5 to-transparent border-primary/20 relative">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Sector Label</label>
+                            <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.settings.providers.label}</label>
                             <input 
                                 type="text" 
                                 required
                                 value={newProvider.name}
                                 onChange={e => setNewProvider({...newProvider, name: e.target.value})}
-                                placeholder="e.g. Proxmox-Alpha-Node"
+                                placeholder={t.settings.providers.labelPlaceholder}
                                 className="premium-input" 
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Infrastructure Type</label>
+                            <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.settings.providers.type}</label>
                             <select 
                                 value={newProvider.type}
                                 onChange={e => setNewProvider({...newProvider, type: e.target.value})}
@@ -108,18 +110,18 @@ const SettingsView: React.FC = () => {
                         </div>
                     </div>
                     <div className="space-y-2 mb-8">
-                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Neural API Endpoint</label>
+                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.settings.providers.endpoint}</label>
                         <input 
                             type="url" 
                             required
                             value={newProvider.endpoint}
                             onChange={e => setNewProvider({...newProvider, endpoint: e.target.value})}
-                            placeholder="https://nebula-node-1.sovereign.local/api"
+                            placeholder={t.settings.providers.endpointPlaceholder}
                             className="premium-input" 
                         />
                     </div>
                     <div className="space-y-2 mb-10">
-                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Secure Handshake Credentials</label>
+                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.settings.providers.credentials}</label>
                         <div className="relative group">
                             <Key size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-dim group-focus-within:text-primary transition-colors" />
                             <input 
@@ -132,7 +134,7 @@ const SettingsView: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <button type="submit" className="btn-primary w-full py-4 text-xs font-bold shadow-xl shadow-primary/20">Establish Secure Connection</button>
+                    <button type="submit" className="btn-primary w-full py-4 text-xs font-bold shadow-xl shadow-primary/20">{t.settings.providers.connect}</button>
                 </form>
             )}
 
@@ -141,8 +143,8 @@ const SettingsView: React.FC = () => {
                 {!loading && providers.length === 0 && !showAddProvider && (
                     <div className="glass p-20 text-center border-dashed border-white/10 bg-white/2">
                         <Cloud size={64} className="mx-auto mb-6 text-dim opacity-20" />
-                        <h3 className="text-lg font-bold text-dim/60 mb-2">Zero Sectors Connected</h3>
-                        <p className="text-sm text-dim max-w-xs mx-auto">Connect your first private or public cloud cluster to begin global orchestration.</p>
+                        <h3 className="text-lg font-bold text-dim/60 mb-2">{t.settings.providers.noProviders}</h3>
+                        <p className="text-sm text-dim max-w-xs mx-auto">{t.settings.providers.noProvidersDesc}</p>
                     </div>
                 )}
                 {providers.map(p => (
@@ -159,8 +161,8 @@ const SettingsView: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-10">
                             <div className="text-right">
-                                <div className="text-[10px] font-black uppercase text-primary tracking-widest mb-1 italic op-80">{p.type} Engine</div>
-                                <div className="text-[10px] font-bold text-dim uppercase tracking-widest op-50">Handshake established {new Date(p.created_at).toLocaleDateString()}</div>
+                                <div className="text-[10px] font-black uppercase text-primary tracking-widest mb-1 italic op-80">{p.type} {t.settings.providers.engine}</div>
+                                <div className="text-[10px] font-bold text-dim uppercase tracking-widest op-50">{t.settings.providers.handshake} {new Date(p.created_at).toLocaleDateString()}</div>
                             </div>
                             <button 
                                 onClick={() => handleDeleteProvider(p.id)}
@@ -181,10 +183,10 @@ const SettingsView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Settings size={14} className="text-dim" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Platform Parameters</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.settings.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Control Plane</h1>
-                    <p className="text-muted mt-2 font-medium">Global configuration for your autonomous NebulaOS instance.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.settings.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.settings.description}</p>
                 </div>
             </header>
 
@@ -228,9 +230,9 @@ const SettingsView: React.FC = () => {
                                 </div>
                                 <h2 className="text-3xl font-black text-main tracking-tight mb-4">{sections.find(s => s.id === activeSection)?.label}</h2>
                                 <p className="text-dim font-medium max-w-sm leading-relaxed mb-10">
-                                    The <span className="text-primary-light">{activeSection}</span> configuration array is currently being synchronized with the neural core. Detailed sub-parameters will stabilize shortly.
+                                    {t.settings.placeholder.description.replace('{section}', activeSection)}
                                 </p>
-                                <button className="btn-secondary px-10 border-white/10 hover:border-white/20">Acknowledge Status</button>
+                                <button className="btn-secondary px-10 border-white/10 hover:border-white/20">{t.settings.placeholder.acknowledge}</button>
                             </div>
                         )}
                     </div>

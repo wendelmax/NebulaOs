@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, RefreshCw, Layers, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const GlobalTopology: React.FC = () => {
+    const { t } = useLocale();
     const [regions, setRegions] = useState<any[]>([]);
     const [zones, setZones] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,19 +40,19 @@ const GlobalTopology: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <MapPin size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Topology Engine</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.globalTopology.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Sovereign Regions</h1>
-                    <p className="text-muted mt-2 font-medium">Orchestration plane across global distributed nodes.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.globalTopology.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.globalTopology.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchData}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Sync Nodes
+                        {t.globalTopology.syncNodes}
                     </button>
                     <div className="glass px-5 py-3 rounded-2xl flex items-center gap-3 border-emerald-500/10">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                        <span className="text-xs font-bold text-main opacity-80 uppercase tracking-tighter">Mesh Optimal</span>
+                        <span className="text-xs font-bold text-main opacity-80 uppercase tracking-tighter">{t.globalTopology.meshOptimal}</span>
                     </div>
                 </div>
             </header>
@@ -108,7 +110,7 @@ const GlobalTopology: React.FC = () => {
                     <div className="glass p-8 bg-gradient-to-br from-indigo-500/5 to-transparent flex-1 border-indigo-500/10">
                         <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
                             <Layers size={20} className="text-indigo-400" />
-                            <h2 className="text-xl font-bold tracking-tight">Regional Fabric</h2>
+                            <h2 className="text-xl font-bold tracking-tight">{t.globalTopology.regionalFabric}</h2>
                         </div>
 
                         {!selectedRegion ? (
@@ -116,18 +118,18 @@ const GlobalTopology: React.FC = () => {
                                 <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
                                     <MapPin size={28} />
                                 </div>
-                                <p className="text-sm font-medium leading-relaxed max-w-[200px]">Select a region on the mesh to inspect zone topology.</p>
+                                <p className="text-sm font-medium leading-relaxed max-w-[200px]">{t.globalTopology.selectRegion}</p>
                             </div>
                         ) : (
                             <div className="animate-fade-in flex flex-col gap-6">
                                 <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                                    <div className="text-[10px] uppercase font-black text-primary-light tracking-widest mb-1">Active Sector</div>
-                                    <div className="text-lg font-bold text-main">{selectedRegion} Status Panel</div>
+                                    <div className="text-[10px] uppercase font-black text-primary-light tracking-widest mb-1">{t.globalTopology.activeSector}</div>
+                                    <div className="text-lg font-bold text-main">{selectedRegion} {t.globalTopology.statusPanel}</div>
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <h3 className="text-xs font-bold text-dim uppercase tracking-widest mb-2 px-1">Availability Clusters</h3>
-                                    {filteredZones.length === 0 && <p className="text-sm text-dim italic p-4">No clusters discovered in this sector.</p>}
+                                    <h3 className="text-xs font-bold text-dim uppercase tracking-widest mb-2 px-1">{t.globalTopology.availabilityClusters}</h3>
+                                    {filteredZones.length === 0 && <p className="text-sm text-dim italic p-4">{t.globalTopology.noClusters}</p>}
                                     {filteredZones.map(zone => (
                                         <div key={zone.id} className="glass p-5 flex items-center gap-4 group cursor-pointer hover:bg-white/5 transition-colors">
                                             <div className="relative">
@@ -143,7 +145,7 @@ const GlobalTopology: React.FC = () => {
                                 </div>
                                 
                                 <button className="btn-primary w-full py-4 text-sm font-bold mt-4 shadow-xl shadow-primary/10">
-                                    Analyze Convergence
+                                    {t.globalTopology.analyze}
                                 </button>
                             </div>
                         )}

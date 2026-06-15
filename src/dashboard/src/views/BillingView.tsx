@@ -1,8 +1,10 @@
 import React from 'react';
 import { CreditCard, TrendingUp, RefreshCw, BarChart3, Globe } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const BillingView: React.FC = () => {
+    const { t } = useLocale();
     const [report, setReport] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
 
@@ -28,19 +30,19 @@ const BillingView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <BarChart3 size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Financial Oversight</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.billing.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Fiscal Fabric</h1>
-                    <p className="text-muted mt-2 font-medium">Consumption analytics and sovereign compliance verification.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.billing.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.billing.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchReport}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Refresh
+                        {t.billing.refresh}
                     </button>
                     <button className="btn-primary">
                         <CreditCard size={18} className="mr-2" />
-                        Provision Capital
+                        {t.billing.provisionCapital}
                     </button>
                 </div>
             </header>
@@ -50,13 +52,13 @@ const BillingView: React.FC = () => {
                     <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                         <TrendingUp size={64} className="text-primary" />
                     </div>
-                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4">Estimated Burn Rate</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4">{t.billing.burnRate}</div>
                     <div className="text-5xl font-black text-main tracking-tighter mb-2">
                         ${report ? report.total_cost.toFixed(2) : '0.00'}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-400 uppercase tracking-tight">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        Active Consumption
+                        {t.billing.activeConsumption}
                     </div>
                 </div>
 
@@ -64,20 +66,20 @@ const BillingView: React.FC = () => {
                     <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Globe size={64} className="text-secondary" />
                     </div>
-                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4">Sovereign Compliance</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4">{t.billing.sovereignCompliance}</div>
                     <div className="text-3xl font-black text-main tracking-tight mb-2 uppercase italic text-glow-primary">
-                        Enforced
+                        {t.billing.enforced}
                     </div>
                     <div className="text-[11px] font-bold text-dim uppercase tracking-widest leading-relaxed">
-                        Sector Boundary: <span className="text-secondary-light">nebula-sovereign-node-1</span>
+                        {t.billing.sectorBoundary}: <span className="text-secondary-light">nebula-sovereign-node-1</span>
                     </div>
                 </div>
 
                 <div className="glass p-8 flex flex-col justify-center bg-gradient-to-br from-primary/5 to-transparent">
-                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4 italic op-50">Next Statement</div>
+                    <div className="text-xs font-black text-dim uppercase tracking-widest mb-4 italic op-50">{t.billing.nextStatement}</div>
                     <div className="text-xl font-bold text-main/80">March 31, 2026</div>
                     <div className="mt-4 flex items-center gap-2 text-[10px] font-black tracking-widest text-primary-light uppercase border-t border-white/5 pt-4">
-                        Automatic Reconciliation Enabled
+                        {t.billing.autoReconciliation}
                     </div>
                 </div>
             </div>
@@ -85,16 +87,16 @@ const BillingView: React.FC = () => {
             <div className="mt-4">
                 <div className="flex items-center gap-3 mb-8">
                     <BarChart3 size={20} className="text-dim" />
-                    <h2 className="text-2xl font-bold tracking-tight">Usage Statement</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{t.billing.usageStatement}</h2>
                 </div>
 
                 <table>
                     <thead>
                         <tr>
-                            <th>Sector Resource</th>
-                            <th>Service Category</th>
-                            <th>Cost Basis (USD)</th>
-                            <th>Geospatial Compliance</th>
+                            <th>{t.billing.colResource}</th>
+                            <th>{t.billing.colCategory}</th>
+                            <th>{t.billing.colCost}</th>
+                            <th>{t.billing.colGeoCompliance}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,7 +110,7 @@ const BillingView: React.FC = () => {
                                         <div className="w-2 h-2 rounded-full border border-emerald-500/50 flex items-center justify-center p-0.5">
                                             <div className="w-full h-full rounded-full bg-emerald-500" />
                                         </div>
-                                        Verified Compliant
+                                        {t.billing.verifiedCompliant}
                                     </span>
                                 </td>
                             </tr>
@@ -119,7 +121,7 @@ const BillingView: React.FC = () => {
 
             <div className="glass p-10 mt-6 border-white/10 relative">
                 <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full opacity-20 -z-10" />
-                <h3 className="text-lg font-black uppercase tracking-widest text-dim mb-8">Institutional Breakdown</h3>
+                <h3 className="text-lg font-black uppercase tracking-widest text-dim mb-8">{t.billing.institutionalBreakdown}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
                     {report?.items?.reduce((acc: any[], item: any) => {
                         const existing = acc.find(a => a.name === item.type);
@@ -131,7 +133,7 @@ const BillingView: React.FC = () => {
                         return acc;
                     }, []).map((item: any) => (
                         <div key={item.name} className="flex justify-between items-center py-4 border-b border-white/5">
-                            <span className="text-sm font-bold text-dim uppercase tracking-widest">{item.name} Segment</span>
+                            <span className="text-sm font-bold text-dim uppercase tracking-widest">{item.name} {t.billing.segment}</span>
                             <span className="font-black text-main text-xl tracking-tighter">${item.cost.toFixed(2)}</span>
                         </div>
                     ))}

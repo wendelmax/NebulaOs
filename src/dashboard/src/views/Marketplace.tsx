@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Database, ShieldCheck, Zap, RefreshCw, Rocket, ShoppingBag } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Marketplace: React.FC = () => {
+    const { t } = useLocale();
     const [blueprints, setBlueprints] = useState<any[]>([]);
     const [presets, setPresets] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,15 +76,15 @@ const Marketplace: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <ShoppingBag size={14} className="text-secondary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Digital Marketplace</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.marketplace.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Cloud Catalog</h1>
-                    <p className="text-muted mt-2 font-medium">Launch production-ready blueprints or one-click automated stacks.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.marketplace.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.marketplace.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchData}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Refresh
+                        {t.marketplace.refresh}
                     </button>
                 </div>
             </header>
@@ -93,7 +95,7 @@ const Marketplace: React.FC = () => {
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <Rocket size={20} />
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight">Automated Solutions</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{t.marketplace.automatedSolutions}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {presets.map(preset => (
@@ -102,16 +104,16 @@ const Marketplace: React.FC = () => {
                                 <div className="w-12 h-12 rounded-xl bg-primary-gradient flex items-center justify-center text-white shadow-lg shadow-primary-glow/20">
                                     <Rocket size={24} />
                                 </div>
-                                <span className="text-[10px] font-black tracking-widest text-primary-light uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                                    Stack
-                                </span>
+                                    <span className="text-[10px] font-black tracking-widest text-primary-light uppercase bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                                        {t.marketplace.stack}
+                                    </span>
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-xl font-bold text-main mb-2 tracking-tight group-hover:text-primary-light transition-colors">{preset.name}</h3>
                                 <p className="text-sm text-muted leading-relaxed line-clamp-3">{preset.description}</p>
                             </div>
                             <button className="btn-primary w-full py-4 text-sm font-bold" onClick={() => handleProvisionPreset(preset.id)} disabled={deploying === preset.id}>
-                                {deploying === preset.id ? 'Initializing...' : 'Provision Cluster'}
+                                {deploying === preset.id ? t.marketplace.initializing : t.marketplace.provision}
                             </button>
                         </div>
                     ))}
@@ -124,7 +126,7 @@ const Marketplace: React.FC = () => {
                     <div className="p-2 bg-secondary/10 rounded-lg text-secondary">
                         <Box size={20} />
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight">System Blueprints</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{t.marketplace.systemBlueprints}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {blueprints.map(bp => {
@@ -142,7 +144,7 @@ const Marketplace: React.FC = () => {
                                     <p className="text-sm text-muted leading-relaxed line-clamp-3">{bp.description}</p>
                                 </div>
                                 <button className="btn-secondary w-full py-4 text-sm font-bold group-hover:bg-white/10" onClick={() => handleDeployBlueprint(bp.id)} disabled={deploying === bp.id}>
-                                    {deploying === bp.id ? 'Deploying...' : 'Launch Blueprint'}
+                                    {deploying === bp.id ? t.marketplace.deploying : t.marketplace.launch}
                                 </button>
                             </div>
                         );

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Landmark, Users, Plus, RefreshCw, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const HierarchyView: React.FC = () => {
+    const { t } = useLocale();
     const [organizations, setOrganizations] = useState<any[]>([]);
     const [departments, setDepartments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,19 +49,19 @@ const HierarchyView: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Landmark size={14} className="text-primary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Enterprise Architecture</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.hierarchy.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Organization Hierarchy</h1>
-                    <p className="text-muted mt-2 font-medium">Manage multi-tenant organizations and departments.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.hierarchy.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.hierarchy.description}</p>
                 </div>
                 <div className="flex gap-4">
                     <button className="btn-secondary" onClick={fetchData}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                        Sync Registry
+                        {t.hierarchy.syncRegistry}
                     </button>
                     <button className="btn-primary">
                         <Plus size={18} />
-                        New Organization
+                        {t.hierarchy.newOrganization}
                     </button>
                 </div>
             </header>
@@ -68,7 +70,7 @@ const HierarchyView: React.FC = () => {
                 {/* Organizations List */}
                 <div className="lg:col-span-1 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">Organizations</h3>
+                        <h3 className="text-lg font-bold">{t.hierarchy.organizations}</h3>
                         <span className="badge badge-secondary">{organizations.length}</span>
                     </div>
                     <div className="flex flex-col gap-2">
@@ -95,14 +97,14 @@ const HierarchyView: React.FC = () => {
                 {/* Departments List */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold">Departments</h3>
-                        <button className="btn-secondary text-xs py-1 px-3">Add Department</button>
+                        <h3 className="text-lg font-bold">{t.hierarchy.departments}</h3>
+                        <button className="btn-secondary text-xs py-1 px-3">{t.hierarchy.addDepartment}</button>
                     </div>
                     <div className="glass p-6 min-h-[400px]">
                         {departments.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-muted opacity-40 gap-4">
                                 <Users size={48} />
-                                <p>No departments found for the selected organization.</p>
+                                <p>{t.hierarchy.noDepartments}</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -115,10 +117,10 @@ const HierarchyView: React.FC = () => {
                                             <span className="text-[10px] font-mono text-muted uppercase tracking-wider">{dept.id}</span>
                                         </div>
                                         <h4 className="text-xl font-bold mb-1">{dept.name}</h4>
-                                        <p className="text-sm text-dim leading-relaxed">System-assigned department for infrastructure partitioning.</p>
+                                        <p className="text-sm text-dim leading-relaxed">{t.hierarchy.deptDesc}</p>
                                         <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-xs">
-                                            <span className="text-muted">Projects: 0</span>
-                                            <button className="text-primary font-bold hover:underline">View Details</button>
+                                            <span className="text-muted">{t.hierarchy.projects}: 0</span>
+                                            <button className="text-primary font-bold hover:underline">{t.hierarchy.viewDetails}</button>
                                         </div>
                                     </div>
                                 ))}

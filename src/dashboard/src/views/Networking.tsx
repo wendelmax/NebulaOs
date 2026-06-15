@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Lock, Globe, RefreshCw, GitBranch, ArrowRight } from 'lucide-react';
 import { api } from '../api/client';
+import { useLocale } from '../contexts/LocaleContext';
 
 const Networking: React.FC = () => {
+    const { t } = useLocale();
     const [securityGroups, setSecurityGroups] = useState<any[]>([]);
     const [gslbEndpoints, setGslbEndpoints] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -65,15 +67,15 @@ const Networking: React.FC = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Globe size={14} className="text-secondary" />
-                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">Connectivity Fabric</span>
+                        <span className="text-dim text-[10px] font-bold uppercase tracking-widest">{t.networking.tag}</span>
                     </div>
-                    <h1 className="text-4xl font-extrabold tracking-tight">SDN & Global Mesh</h1>
-                    <p className="text-muted mt-2 font-medium">Manage VPC firewalls, security groups and multi-provider routing.</p>
+                    <h1 className="text-4xl font-extrabold tracking-tight">{t.networking.title}</h1>
+                    <p className="text-muted mt-2 font-medium">{t.networking.description}</p>
                 </div>
-                <button className="btn-secondary" onClick={fetchData}>
-                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
+                    <button className="btn-secondary" onClick={fetchData}>
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        {t.networking.refresh}
+                    </button>
             </header>
 
             {/* Inter-Provider Routing Card */}
@@ -87,18 +89,18 @@ const Networking: React.FC = () => {
                         <GitBranch size={24} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight text-main/90">Inter-Provider Routing</h2>
-                        <p className="text-xs font-bold text-dim uppercase tracking-widest mt-1">Establishing sovereign high-speed bridges</p>
+                        <h2 className="text-2xl font-bold tracking-tight text-main/90">{t.networking.interProviderRouting}</h2>
+                        <p className="text-xs font-bold text-dim uppercase tracking-widest mt-1">{t.networking.routingSubtitle}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-center bg-black/40 p-6 rounded-3xl border border-white/5">
                     <div className="xl:col-span-1 space-y-2">
-                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Source Sector</label>
+                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.networking.sourceSector}</label>
                         <select className="premium-select" value={routeSource} onChange={e => setRouteSource(e.target.value)}>
-                            <option value="proxmox">Proxmox Cluster</option>
-                            <option value="openstack">OpenStack Cloud</option>
-                            <option value="aws">AWS Public</option>
+                            <option value="proxmox">{t.networking.proxmox}</option>
+                            <option value="openstack">{t.networking.openstack}</option>
+                            <option value="aws">{t.networking.aws}</option>
                         </select>
                     </div>
                     
@@ -107,16 +109,16 @@ const Networking: React.FC = () => {
                     </div>
 
                     <div className="xl:col-span-1 space-y-2">
-                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Target Sector</label>
+                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.networking.targetSector}</label>
                         <select className="premium-select" value={routeTarget} onChange={e => setRouteTarget(e.target.value)}>
-                            <option value="openstack">OpenStack Cloud</option>
-                            <option value="proxmox">Proxmox Cluster</option>
-                            <option value="aws">AWS Public</option>
+                            <option value="openstack">{t.networking.openstack}</option>
+                            <option value="proxmox">{t.networking.proxmox}</option>
+                            <option value="aws">{t.networking.aws}</option>
                         </select>
                     </div>
 
                     <div className="xl:col-span-1 space-y-2">
-                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">Destination CIRD</label>
+                        <label className="text-[10px] font-black text-dim uppercase tracking-widest px-1">{t.networking.destinationCIDR}</label>
                         <input 
                             type="text" 
                             className="premium-input" 
@@ -126,7 +128,7 @@ const Networking: React.FC = () => {
                     </div>
 
                     <button className="btn-primary w-full py-4 text-xs font-bold h-fit shadow-xl shadow-primary/10 disabled:opacity-50" onClick={handleCreateRoute} disabled={creatingRoute}>
-                        {creatingRoute ? 'establishing tunnel...' : 'Construct Mesh Link'}
+                        {creatingRoute ? t.networking.establishing : t.networking.constructMesh}
                     </button>
                 </div>
             </div>
@@ -135,12 +137,12 @@ const Networking: React.FC = () => {
                 <div className="glass p-10 flex flex-col gap-8">
                     <div className="flex items-center gap-4 pb-4 border-b border-white/5">
                         <Lock size={20} className="text-primary" />
-                        <h2 className="text-xl font-bold tracking-tight">Security Groups</h2>
+                        <h2 className="text-xl font-bold tracking-tight">{t.networking.securityGroups}</h2>
                     </div>
 
                     <div className="flex flex-col gap-4">
                         {securityGroups.length === 0 && !loading && (
-                            <div className="py-10 text-center text-dim font-medium italic opacity-40">Zero group definitions found.</div>
+                            <div className="py-10 text-center text-dim font-medium italic opacity-40">{t.networking.noGroups}</div>
                         )}
                         {securityGroups.map((sg: any) => (
                             <div key={sg.id} className="glass p-6 flex items-center gap-6 group hover:bg-white/5">
@@ -163,12 +165,12 @@ const Networking: React.FC = () => {
                 <div className="glass p-10 flex flex-col gap-8">
                     <div className="flex items-center gap-4 pb-4 border-b border-white/5">
                         <Globe size={20} className="text-secondary" />
-                        <h2 className="text-xl font-bold tracking-tight">Global Endpoints (GSLB)</h2>
+                        <h2 className="text-xl font-bold tracking-tight">{t.networking.globalEndpoints}</h2>
                     </div>
 
                     <div className="flex flex-col gap-4">
                         {gslbEndpoints.length === 0 && !loading && (
-                            <div className="py-10 text-center text-dim font-medium italic opacity-40">No global endpoints configured.</div>
+                            <div className="py-10 text-center text-dim font-medium italic opacity-40">{t.networking.noEndpoints}</div>
                         )}
                         {gslbEndpoints.map((ep: any) => (
                             <div key={ep.id} className="glass p-6 flex items-center gap-6 group hover:bg-white/5">
@@ -185,7 +187,7 @@ const Networking: React.FC = () => {
                     </div>
                     
                     <button className="btn-secondary w-full py-4 text-xs font-bold mt-2 hover:bg-white/5 border-dashed">
-                        Declare New Global Endpoint
+                        {t.networking.newEndpoint}
                     </button>
                 </div>
             </div>
