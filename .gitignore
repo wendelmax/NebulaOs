@@ -31,3 +31,7 @@ crash.log
 *.dylib
 *.test
 *.out
+
+# CLI binary
+/src/cli/nebula
+/src/cli/nebula.exe
