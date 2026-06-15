@@ -3,16 +3,16 @@ services:
     image: postgres:16-alpine
     container_name: nebula-postgres
     environment:
-      POSTGRES_DB: nebula
-      POSTGRES_USER: nebula
-      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ${POSTGRES_DB:-nebula}
+      POSTGRES_USER: ${POSTGRES_USER:-nebula}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../../src/api/internal/infrastructure/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U nebula" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nebula}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,11 +22,11 @@ services:
     container_name: nebula-keycloak
     command: start-dev --import-realm
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
       KC_HEALTH_ENABLED: "true"
     ports:
-      - "8080:8080"
+      - "${KC_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,9 +35,9 @@ services:
     image: hashicorp/vault:1.15
     container_name: nebula-vault
     ports:
-      - "8200:8200"
+      - "${VAULT_PORT:-8200}:8200"
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-root}
       VAULT_ADDR: "http://0.0.0.0:8200"
     cap_add:
       - IPC_LOCK
@@ -50,31 +50,33 @@ services:
   nats:
     image: nats:2.10
     ports:
-      - "4222:4222"
-      - "8222:8222"
+      - "${NATS_PORT:-4222}:4222"
+      - "${NATS_MONITOR_PORT:-8222}:8222"
 
   traefik:
     image: traefik:v2.10
     container_name: nebula-traefik
     user: root
     command:
-      - "--log.level=DEBUG"
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-DEBUG}"
       - "--api.insecure=true"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.address=:${TRAEFIK_ENTRYPOINT_PORT:-80}"
       - "--providers.file.filename=/etc/traefik/traefik_dynamic.yml"
       - "--accesslog=true"
       - "--accesslog.filepath=/var/log/traefik_access.log"
     volumes:
       - "./traefik_dynamic.yml:/etc/traefik/traefik_dynamic.yml:ro"
     ports:
-      - "80:80"
-      - "8081:8080" # Traefik Dashboard
+      - "${TRAEFIK_ENTRYPOINT_PORT:-80}:${TRAEFIK_ENTRYPOINT_PORT:-80}"
+      - "${TRAEFIK_DASHBOARD_PORT:-8081}:8080"
+    env_file:
+      - ../../.env
 
   localstack:
     image: localstack/localstack
     container_name: nebula-localstack
     ports:
-      - "4566:4566"
+      - "${LOCALSTACK_PORT:-4566}:4566"
     environment:
       - SERVICES=ec2,s3
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -87,13 +89,16 @@ services:
       dockerfile: src/api/Dockerfile
     container_name: nebula-api
     ports:
-      - "8000:8000"
+      - "${NEBULA_API_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=postgres://nebula:password123@postgres:5432/nebula?sslmode=disable
-      - NATS_URL=nats://nats:4222
-      - KC_URL=http://keycloak:8080
-      - VAULT_URL=http://vault:8200
-      - VAULT_TOKEN=root
+      - DATABASE_URL=postgres://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD:-password123}@postgres:5432/${POSTGRES_DB:-nebula}?sslmode=disable
+      - NATS_URL=nats://nats:${NATS_PORT:-4222}
+      - KC_URL=http://keycloak:${KC_PORT:-8080}
+      - VAULT_URL=http://vault:${VAULT_PORT:-8200}
+      - VAULT_TOKEN=${VAULT_DEV_ROOT_TOKEN_ID:-root}
+      - JWT_SECRET=${JWT_SECRET:-nebula-secret-key-2026}
+      - PORT=${NEBULA_API_PORT:-8000}
+      - HOST=0.0.0.0
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,15 +109,17 @@ services:
       nats:
         condition: service_started
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8000/health" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${NEBULA_API_PORT:-8000}/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`api.nebula.local`)"
+      - "traefik.http.routers.api.rule=Host(`${NEBULA_API_DOMAIN:-api.nebula.local}`)"
       - "traefik.http.routers.api.entrypoints=web"
-      - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.http.services.api.loadbalancer.server.port=${NEBULA_API_PORT:-8000}"
+    env_file:
+      - ../../.env
 
   nebula-dashboard:
     build:
@@ -121,11 +128,14 @@ services:
     container_name: nebula-dashboard
     depends_on:
       - nebula-api
+    environment:
+      VITE_API_URL: http://nebula-api:${NEBULA_API_PORT:-8000}
+      VITE_AUTH_STORAGE_KEY: ${VITE_AUTH_STORAGE_KEY:-nebula_token}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`nebula.local`)"
+      - "traefik.http.routers.dashboard.rule=Host(`${NEBULA_DOMAIN:-nebula.local}`)"
       - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.services.dashboard.loadbalancer.server.port=80"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=${NEBULA_DASHBOARD_PORT:-80}"
 
 volumes:
   postgres_data:

@@ -1,6 +1,36 @@
 # NebulaOS Platform Orchestrator (Windows)
 # This script automates the startup of all NebulaOS requirements.
 
+param(
+    [string]$envFile = ".env"
+)
+
+# Load .env if present
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match "^\s*([^#=]+)=(.*)$") {
+            $key = $matches[1].Trim()
+            $val = $matches[2].Trim()
+            Set-Item -Path "env:$key" -Value $val
+        }
+    }
+}
+
+$NebulaDomain = $env:NEBULA_DOMAIN
+if (-not $NebulaDomain) { $NebulaDomain = "nebula.local" }
+
+$NebulaApiDomain = $env:NEBULA_API_DOMAIN
+if (-not $NebulaApiDomain) { $NebulaApiDomain = "api.nebula.local" }
+
+$NebulaApiPort = $env:NEBULA_API_PORT
+if (-not $NebulaApiPort) { $NebulaApiPort = "8000" }
+
+$SeedAdminUser = $env:SEED_ADMIN_USERNAME
+if (-not $SeedAdminUser) { $SeedAdminUser = "admin" }
+
+$SeedAdminPass = $env:SEED_ADMIN_PASSWORD
+if (-not $SeedAdminPass) { $SeedAdminPass = "admin" }
+
 Write-Host "== NebulaOS Enterprise Orchestrator (Windows) ==" -ForegroundColor Blue
 
 # Check for Docker
@@ -29,7 +59,7 @@ $success = $false
 
 while ($count -lt $maxRetries) {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:8000/health" -Method Get -UseBasicParsing -ErrorAction SilentlyContinue
+        $response = Invoke-WebRequest -Uri "http://localhost:$NebulaApiPort/health" -Method Get -UseBasicParsing -ErrorAction SilentlyContinue
         if ($response.StatusCode -eq 200) {
             $success = $true
             break
@@ -44,10 +74,10 @@ while ($count -lt $maxRetries) {
 
 if ($success) {
     Write-Host "`nNebulaOS is UP and Running!" -ForegroundColor Green
-    Write-Host "Dashboard: http://nebula.local" -ForegroundColor Blue
-    Write-Host "API Health: http://api.nebula.local/health" -ForegroundColor Blue
-    Write-Host "Initial Credentials: admin / admin" -ForegroundColor Blue
-    Write-Host "NOTE: Ensure nebula.local and api.nebula.local point to 127.0.0.1 in C:\Windows\System32\drivers\etc\hosts" -ForegroundColor Yellow
+    Write-Host "Dashboard: http://$NebulaDomain" -ForegroundColor Blue
+    Write-Host "API Health: http://$NebulaApiDomain/health" -ForegroundColor Blue
+    Write-Host "Initial Credentials: $SeedAdminUser / $SeedAdminPass" -ForegroundColor Blue
+    Write-Host "NOTE: Ensure $NebulaDomain and $NebulaApiDomain point to 127.0.0.1 in C:\Windows\System32\drivers\etc\hosts" -ForegroundColor Yellow
 } else {
     Write-Host "`nError: Nebula API failed to start in time." -ForegroundColor Red
     exit 1

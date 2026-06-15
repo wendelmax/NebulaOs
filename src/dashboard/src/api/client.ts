@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const AUTH_STORAGE_KEY = import.meta.env.VITE_AUTH_STORAGE_KEY || 'nebula_token';
 
 const client = axios.create({
     baseURL: API_BASE_URL,
@@ -11,7 +12,7 @@ const client = axios.create({
 
 // Interceptor for Auth
 client.interceptors.request.use((config) => {
-    const token = localStorage.getItem('nebula_token');
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -66,6 +67,27 @@ export const api = {
     getBareMetalNodes: () => client.get('/api/baremetal/nodes'),
     provisionBareMetalNode: (id: string) => client.post(`/api/baremetal/provision?id=${id}`, {}),
     getBareMetalLogs: (nodeId: string) => client.get(`/api/baremetal/logs?node_id=${nodeId}`),
+
+    // Marketplace
+    getBlueprints: () => client.get('/marketplace/blueprints'),
+    deployBlueprint: (data: any) => client.post('/marketplace/deploy', data),
+
+    // Security Groups
+    getSecurityGroups: (projectId: string) => client.get(`/security-groups?project_id=${projectId}`),
 };
+
+export const AUTH_TOKEN_KEY = AUTH_STORAGE_KEY;
+
+export function getAuthToken(): string | null {
+    return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
+export function setAuthToken(token: string): void {
+    localStorage.setItem(AUTH_STORAGE_KEY, token);
+}
+
+export function clearAuthToken(): void {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+}
 
 export default client;

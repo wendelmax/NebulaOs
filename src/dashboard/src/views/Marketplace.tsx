@@ -11,14 +11,13 @@ const Marketplace: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // In a real app we'd have a specific blueprint endpoint in client.ts
-            // For now, let's keep the manual fetch but align the visual style
-            const bpResp = await fetch('http://localhost:8000/marketplace/blueprints');
-            const presetResp = await api.getPresets();
+            const [bpResp, presetResp] = await Promise.all([
+                api.getBlueprints(),
+                api.getPresets()
+            ]);
             
-            if (bpResp.ok) {
-                const bpData = await bpResp.json();
-                setBlueprints(bpData || []);
+            if (bpResp.status === 200) {
+                setBlueprints(bpResp.data || []);
             }
             if (presetResp.status === 200) {
                 setPresets(presetResp.data || []);
@@ -37,12 +36,9 @@ const Marketplace: React.FC = () => {
     const handleDeployBlueprint = async (bpId: string) => {
         setDeploying(bpId);
         try {
-            const resp = await fetch('http://localhost:8000/marketplace/deploy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ blueprint_id: bpId, project_id: 'v-p1' })
-            });
-            if (resp.ok) alert('Blueprint deployment started!');
+            const projectId = import.meta.env.VITE_DEFAULT_PROJECT_ID || 'v-p1';
+            const resp = await api.deployBlueprint({ blueprint_id: bpId, project_id: projectId });
+            if (resp.status === 200) alert('Blueprint deployment started!');
         } catch (err) {
             console.error(err);
         } finally {
@@ -53,7 +49,8 @@ const Marketplace: React.FC = () => {
     const handleProvisionPreset = async (presetId: string) => {
         setDeploying(presetId);
         try {
-            const resp = await api.provisionPreset({ preset_id: presetId, project_id: 'v-p1' });
+            const projectId = import.meta.env.VITE_DEFAULT_PROJECT_ID || 'v-p1';
+            const resp = await api.provisionPreset({ preset_id: presetId, project_id: projectId });
             if (resp.status === 202) alert('Automated provisioning started!');
         } catch (err) {
             console.error(err);

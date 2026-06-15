@@ -16,17 +16,18 @@ const Networking: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
+            const projectId = import.meta.env.VITE_DEFAULT_PROJECT_ID || 'v-p1';
             const [sgResp, _] = await Promise.all([
-                fetch('http://localhost:8000/security-groups?project_id=v-p1'),
+                api.getSecurityGroups(projectId),
                 api.getNetworkStatus('')
             ]);
 
-            if (sgResp.ok) {
-                const sgData = await sgResp.json();
-                setSecurityGroups(sgData || []);
+            if (sgResp.status === 200) {
+                setSecurityGroups(sgResp.data || []);
             }
+            const nebulaApiDomain = import.meta.env.VITE_NEBULA_API_DOMAIN || 'api.nebula.local';
             setGslbEndpoints([
-                { id: 'g-1', dns_record: 'api.nebula.local', state: 'active', policy: { strategy: 'latency' } }
+                { id: 'g-1', dns_record: nebulaApiDomain, state: 'active', policy: { strategy: 'latency' } }
             ]);
         } catch (err) {
             console.error("Failed to fetch networking data", err);

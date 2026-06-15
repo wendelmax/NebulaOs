@@ -62,31 +62,43 @@ func main() {
 	mockProvider := mock.NewMockProvider()
 	providerFactory.Register("mock", mockProvider)
 
-	proxmoxProvider := proxmox.NewProxmoxProvider("https://pve.nebula.local/api2/json", "token-uuid")
+	proxmoxURL := getEnv("PROXMOX_URL", "https://pve.nebula.local/api2/json")
+	proxmoxToken := getEnv("PROXMOX_TOKEN", "token-uuid")
+	proxmoxProvider := proxmox.NewProxmoxProvider(proxmoxURL, proxmoxToken)
 	providerFactory.Register("proxmox", proxmoxProvider)
 
-	k8sProvider := kubernetes.NewKubernetesProvider("kubeconfig-data")
+	kubeconfig := getEnv("KUBECONFIG_PATH", "kubeconfig-data")
+	k8sProvider := kubernetes.NewKubernetesProvider(kubeconfig)
 	providerFactory.Register("kubernetes", k8sProvider)
 
+	osEndpoint := getEnv("OS_IDENTITY_ENDPOINT", "http://openstack:5000/v3")
+	osUser := getEnv("OS_USERNAME", "admin")
+	osPass := getEnv("OS_PASSWORD", "password")
 	osProvider, _ := openstack.NewOpenStackProvider(gophercloud.AuthOptions{
-		IdentityEndpoint: "http://openstack:5000/v3",
-		Username:         "admin",
-		Password:         "password",
+		IdentityEndpoint: osEndpoint,
+		Username:         osUser,
+		Password:         osPass,
 	})
 	if osProvider != nil {
 		providerFactory.Register("openstack", osProvider)
 	}
 
-	bmProvider := baremetal.NewBareMetalProvider("admin", "password")
+	bmUser := getEnv("BM_IPMI_USER", "admin")
+	bmPass := getEnv("BM_IPMI_PASSWORD", "password")
+	bmProvider := baremetal.NewBareMetalProvider(bmUser, bmPass)
 	providerFactory.Register("baremetal", bmProvider)
 
-	awsProvider, _ := aws.NewAWSProvider(context.Background(), "us-east-1", "http://localhost:4566")
+	awsRegion := getEnv("AWS_REGION", "us-east-1")
+	awsEndpoint := getEnv("AWS_ENDPOINT", "http://localhost:4566")
+	awsProvider, _ := aws.NewAWSProvider(context.Background(), awsRegion, awsEndpoint)
 	if awsProvider != nil {
 		providerFactory.Register("aws", awsProvider)
 	}
 
-	traefikProvider := traefik.NewTraefikProvider("./configs/traefik")
-	keycloakProvider := keycloak.NewKeycloakProvider(kcURL, "nebula-api")
+	traefikConfigDir := getEnv("TRAEFIK_CONFIG_DIR", "./configs/traefik")
+	traefikProvider := traefik.NewTraefikProvider(traefikConfigDir)
+	kcClientID := getEnv("KC_CLIENT_ID", "nebula-api")
+	keycloakProvider := keycloak.NewKeycloakProvider(kcURL, kcClientID)
 	vaultProvider := vault.NewVaultProvider(vaultURL, vaultToken)
 
 
@@ -156,13 +168,13 @@ func main() {
 
 		// Initial data for in-memory setup
 		seedCtx := context.Background()
-		regionRepo.Create(seedCtx, &domain.Region{ID: "reg-us-east", Name: "US East (Proxmox Cluster A)", Location: "Virginia", IsDefault: true})
-		regionRepo.Create(seedCtx, &domain.Region{ID: "reg-eu-west", Name: "EU West (OpenStack Lab)", Location: "London"})
-		zoneRepo.Create(seedCtx, &domain.AvailabilityZone{ID: "zone-a", RegionID: "reg-us-east", Name: "Zone A", State: "available"})
+		regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_REGION_US_NAME", "US East (Proxmox Cluster A)"), Location: getEnv("SEED_REGION_US_LOCATION", "Virginia"), IsDefault: true})
+		regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_EU_ID", "reg-eu-west"), Name: getEnv("SEED_REGION_EU_NAME", "EU West (OpenStack Lab)"), Location: getEnv("SEED_REGION_EU_LOCATION", "London")})
+		zoneRepo.Create(seedCtx, &domain.AvailabilityZone{ID: getEnv("SEED_ZONE_ID", "zone-a"), RegionID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_ZONE_NAME", "Zone A"), State: "available"})
 
 		// Seed Providers
-		providerRepo.Create(seedCtx, &domain.Provider{ID: "prov-px-1", Name: "Proxmox Production", Type: domain.ProxmoxProvider, Endpoint: "https://pve.nebula.local/api2/json", Status: "active", CreatedAt: time.Now()})
-		providerRepo.Create(seedCtx, &domain.Provider{ID: "prov-os-1", Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: "http://openstack:5000/v3", Status: "active", CreatedAt: time.Now()})
+		providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_PX_ID", "prov-px-1"), Name: "Proxmox Production", Type: domain.ProxmoxProvider, Endpoint: proxmoxURL, Status: "active", CreatedAt: time.Now()})
+		providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_OS_ID", "prov-os-1"), Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: osEndpoint, Status: "active", CreatedAt: time.Now()})
 	}
 
 	// Seed internal admin user, defaults and test data
@@ -178,7 +190,8 @@ func main() {
 		identityManager = keycloakProvider
 	} else {
 		// Default to Internal Identity Manager
-		identityManager = services.NewInternalIdentityManager(userRepo, getEnv("JWT_SECRET", "nebula-secret-key-2026"))
+		jwtSecret := getEnv("JWT_SECRET", "nebula-secret-key-2026")
+		identityManager = services.NewInternalIdentityManager(userRepo, jwtSecret)
 	}
 
 	authMiddleware := middleware.NewAuthMiddleware(identityManager)
@@ -294,7 +307,7 @@ func main() {
 
 		status := map[string]interface{}{
 			"api":     "active",
-			"version": "v14.2-prod-hardened",
+			"version": getEnv("API_VERSION", "v14.2-prod-hardened"),
 			"time":    time.Now().Format(time.RFC3339),
 		}
 		infraHealthy := true
@@ -713,7 +726,7 @@ func main() {
 
 	// Apply CORS as the absolute outermost layer
 	corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", getEnv("CORS_ALLOWED_ORIGIN", "*"))
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == "OPTIONS" {
@@ -724,8 +737,10 @@ func main() {
 	})
 
 	port := getEnv("PORT", "8000")
-	fmt.Printf("NebulaOS API listening on :%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
+	host := getEnv("HOST", "0.0.0.0")
+	addr := host + ":" + port
+	fmt.Printf("NebulaOS API listening on %s\n", addr)
+	log.Fatal(http.ListenAndServe(addr, corsHandler))
 }
 
 func getEnv(key, fallback string) string {
@@ -747,58 +762,67 @@ func seedEnterpriseDefaults(
 ) {
 	ctx := context.Background()
 
+	tenantID := getEnv("SEED_TENANT_ID", "v-t1")
+	orgID := getEnv("SEED_ORG_ID", "org-nebula-main")
+	deptID := getEnv("SEED_DEPT_ID", "dept-core-infra")
+	projectID := getEnv("SEED_PROJECT_ID", "v-p1")
+	adminUser := getEnv("SEED_ADMIN_USERNAME", "admin")
+	adminPass := getEnv("SEED_ADMIN_PASSWORD", "admin")
+	adminEmail := getEnv("SEED_ADMIN_EMAIL", "admin@nebula.local")
+	adminID := getEnv("SEED_ADMIN_ID", "u-admin")
+	tenantName := getEnv("SEED_TENANT_NAME", "Nebula Global Corp")
+	orgName := getEnv("SEED_ORG_NAME", "Nebula Global Corp")
+	deptName := getEnv("SEED_DEPT_NAME", "Core Infrastructure")
+	projectName := getEnv("SEED_PROJECT_NAME", "Nebula Core Project")
+
 	// 1. Seed Default Tenant
-	tenantID := "v-t1"
 	_, err := tenantRepo.GetByID(ctx, tenantID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default tenant...")
-		tenantRepo.Create(ctx, &domain.Tenant{ID: tenantID, Name: "Nebula Global Corp", CreatedAt: time.Now()})
+		tenantRepo.Create(ctx, &domain.Tenant{ID: tenantID, Name: tenantName, CreatedAt: time.Now()})
 	}
 
 	// 2. Seed Default Organization
-	orgID := "org-nebula-main"
 	_, err = orgRepo.GetByID(ctx, orgID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default organization...")
 		orgRepo.Create(ctx, &domain.Organization{
 			ID:        orgID,
-			Name:      "Nebula Global Corp",
+			Name:      orgName,
 			CreatedAt: time.Now(),
 		})
 	}
 
 	// 3. Seed Default Department
-	deptID := "dept-core-infra"
 	_, err = deptRepo.GetByID(ctx, deptID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding core infrastructure department...")
 		deptRepo.Create(ctx, &domain.Department{
 			ID:             deptID,
 			OrganizationID: orgID,
-			Name:           "Core Infrastructure",
+			Name:           deptName,
 			CreatedAt:      time.Now(),
 		})
 	}
 
 	// 4. Seed Default Project
-	projectID := "v-p1"
 	_, err = projectRepo.GetByID(ctx, projectID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default project...")
-		projectRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: "Nebula Core Project", CreatedAt: time.Now()})
+		projectRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: projectName, CreatedAt: time.Now()})
 	}
 
 	// 5. Seed Admin User
-	admin, err := userRepo.GetByUsername(ctx, "admin")
+	admin, err := userRepo.GetByUsername(ctx, adminUser)
 	if err != nil || admin == nil {
 		fmt.Println("[Nebula] Seeding default administrator...")
 		tempAuth := services.NewInternalIdentityManager(userRepo, "temp")
-		hash, _ := tempAuth.HashPassword("admin")
+		hash, _ := tempAuth.HashPassword(adminPass)
 		userRepo.Create(ctx, &domain.User{
-			ID:                 "u-admin",
-			Username:           "admin",
+			ID:                 adminID,
+			Username:           adminUser,
 			PasswordHash:       hash,
-			Email:              "admin@nebula.local",
+			Email:              adminEmail,
 			TenantID:           tenantID,
 			MustChangePassword: true,
 			CreatedAt:          time.Now(),
@@ -808,12 +832,18 @@ func seedEnterpriseDefaults(
 	// 6. Seed Default Resources if project is empty
 	resources, _ := resourceRepo.GetByProject(ctx, projectID)
 	if len(resources) == 0 {
+		seedResourceID1 := getEnv("SEED_RESOURCE_NODE_ID", "v-n1")
+		seedResourceID2 := getEnv("SEED_RESOURCE_VOL_ID", "v-s1")
+		seedVolumeID := getEnv("SEED_VOLUME_ID", "v-vol-1")
+		seedBucketID := getEnv("SEED_BUCKET_ID", "v-b1")
+		seedBucketRegion := getEnv("SEED_BUCKET_REGION", "us-east-1")
+
 		fmt.Println("[Nebula] Seeding initial resources...")
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-n1", ProjectID: projectID, Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: "v-s1", ProjectID: projectID, Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID1, ProjectID: projectID, Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
+		resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID2, ProjectID: projectID, Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
 		
-		volumeRepo.Create(ctx, &domain.Volume{ID: "v-vol-1", ProjectID: projectID, Name: "Primary-OS-Disk", SizeGB: 100, State: "active", CreatedAt: time.Now()})
-		bucketRepo.Create(ctx, &domain.Bucket{ID: "v-b1", ProjectID: projectID, Name: "Global-Assets", Region: "us-east-1", State: "active", CreatedAt: time.Now()})
+		volumeRepo.Create(ctx, &domain.Volume{ID: seedVolumeID, ProjectID: projectID, Name: "Primary-OS-Disk", SizeGB: 100, State: "active", CreatedAt: time.Now()})
+		bucketRepo.Create(ctx, &domain.Bucket{ID: seedBucketID, ProjectID: projectID, Name: "Global-Assets", Region: seedBucketRegion, State: "active", CreatedAt: time.Now()})
 	}
 }
 

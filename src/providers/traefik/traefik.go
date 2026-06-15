@@ -12,7 +12,8 @@ import (
 )
 
 type TraefikProvider struct {
-	ConfigDir string
+	ConfigDir    string
+	CertResolver string
 }
 
 type DynamicConfig struct {
@@ -48,8 +49,12 @@ func NewTraefikProvider(configDir string) *TraefikProvider {
 	if configDir == "" {
 		configDir = "./configs/traefik"
 	}
+	certResolver := os.Getenv("TRAEFIK_CERT_RESOLVER")
+	if certResolver == "" {
+		certResolver = "le"
+	}
 	_ = os.MkdirAll(configDir, 0755)
-	return &TraefikProvider{ConfigDir: configDir}
+	return &TraefikProvider{ConfigDir: configDir, CertResolver: certResolver}
 }
 
 func (p *TraefikProvider) ConfigureIngress(ctx context.Context, domainName string, targetService string) error {
@@ -64,7 +69,7 @@ func (p *TraefikProvider) ConfigureIngress(ctx context.Context, domainName strin
 		Rule:    fmt.Sprintf("Host(`%s`)", domainName),
 		Service: serviceName,
 		TLS: &TLS{
-			CertResolver: "le", // Default Let's Encrypt resolver
+			CertResolver: p.CertResolver,
 		},
 	}
 

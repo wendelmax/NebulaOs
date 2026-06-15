@@ -16,11 +16,12 @@ import LoginView from './views/LoginView';
 import ChangePasswordView from './views/ChangePasswordView';
 import HierarchyView from './views/HierarchyView';
 import BareMetalView from './views/BareMetalView';
+import { getAuthToken, setAuthToken, clearAuthToken } from './api/client';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('nebula_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getAuthToken());
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
 
   React.useEffect(() => {
@@ -30,13 +31,13 @@ const App: React.FC = () => {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleLogin = (token: string, mustChange: boolean) => {
-    localStorage.setItem('nebula_token', token);
+    setAuthToken(token);
     setMustChangePassword(mustChange);
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('nebula_token');
+    clearAuthToken();
     setIsAuthenticated(false);
   };
 
