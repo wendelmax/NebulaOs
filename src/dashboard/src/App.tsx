@@ -16,28 +16,37 @@ import LoginView from './views/LoginView';
 import ChangePasswordView from './views/ChangePasswordView';
 import HierarchyView from './views/HierarchyView';
 import BareMetalView from './views/BareMetalView';
-import { getAuthToken, setAuthToken, clearAuthToken } from './api/client';
+import { api } from './api/client';
+import { LocaleProvider, useLocale } from './contexts/LocaleContext';
 
-const App: React.FC = () => {
+const AppInner: React.FC = () => {
+  const { t } = useLocale();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getAuthToken());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  React.useEffect(() => {
+    api.checkAuth()
+      .then(() => setIsAuthenticated(true))
+      .catch(() => setIsAuthenticated(false))
+      .finally(() => setAuthLoading(false));
+  }, []);
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleLogin = (token: string, mustChange: boolean) => {
-    setAuthToken(token);
     setMustChangePassword(mustChange);
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    clearAuthToken();
+  const handleLogout = async () => {
+    try { await api.logout(); } catch { /* ignore */ }
     setIsAuthenticated(false);
   };
 
@@ -72,14 +81,25 @@ const App: React.FC = () => {
       default:
         return (
           <div className="glass p-12 text-center">
-            <h2 style={{ color: 'var(--text-muted)' }}>Module In Development</h2>
+            <h2 style={{ color: 'var(--text-muted)' }}>{t.common.moduleInDevelopment}</h2>
             <p style={{ color: 'rgba(148, 163, 184, 0.6)', marginTop: '1rem' }}>
-              The "{activeTab}" capability is being provisioned in the orchestration plane.
+              {t.common.moduleInDevelopmentDesc}
             </p>
           </div>
         );
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-primary)' }}>
+        <div className="text-center">
+          <div className="text-4xl font-black tracking-tight text-main/50 animate-pulse">NebulaOS</div>
+          <div className="text-dim text-sm mt-4">{t.app.loading}</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginView onLogin={handleLogin} />;
@@ -101,5 +121,11 @@ const App: React.FC = () => {
     </DashboardShell>
   );
 }
+
+const App: React.FC = () => (
+  <LocaleProvider>
+    <AppInner />
+  </LocaleProvider>
+);
 
 export default App;

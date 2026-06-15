@@ -8,9 +8,10 @@ const client = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
 });
 
-// Interceptor for Auth
+// Deprecated: kept for backward compat with old tokens
 client.interceptors.request.use((config) => {
     const token = localStorage.getItem(AUTH_STORAGE_KEY);
     if (token) {
@@ -25,8 +26,10 @@ export const api = {
     getProjects: () => client.get('/projects'),
     createProject: (data: any) => client.post('/projects', data),
 
-    // Auth
+    // Auth (cookie-based)
     login: (data: any) => client.post('/auth/login', data),
+    logout: () => client.post('/auth/logout'),
+    checkAuth: () => client.get('/auth/me'),
     changePassword: (data: any) => client.post('/auth/change-password', data),
     getResources: (projectId?: string) => client.get(`/resources${projectId ? `?project_id=${projectId}` : ''}`),
     createResource: (data: any) => client.post('/resources', data),
@@ -78,14 +81,17 @@ export const api = {
 
 export const AUTH_TOKEN_KEY = AUTH_STORAGE_KEY;
 
+// Deprecated: prefer cookie-based auth
 export function getAuthToken(): string | null {
     return localStorage.getItem(AUTH_STORAGE_KEY);
 }
 
+// Deprecated: prefer cookie-based auth
 export function setAuthToken(token: string): void {
     localStorage.setItem(AUTH_STORAGE_KEY, token);
 }
 
+// Deprecated: prefer api.logout()
 export function clearAuthToken(): void {
     localStorage.removeItem(AUTH_STORAGE_KEY);
 }

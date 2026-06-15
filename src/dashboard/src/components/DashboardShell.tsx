@@ -1,4 +1,5 @@
-import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag, Map, Brain } from 'lucide-react';
+import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag, Map, Brain, Languages } from 'lucide-react';
+import { useLocale } from '../contexts/LocaleContext';
 
 export type TabType = 'overview' | 'resources' | 'storage' | 'governance' | 'observability' | 'networking' | 'billing' | 'settings' | 'marketplace' | 'global' | 'advisor' | 'hierarchy' | 'baremetal';
 
@@ -27,6 +28,8 @@ interface DashboardShellProps {
 }
 
 const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, onTabChange, theme, onToggleTheme, onLogout }) => {
+    const { t, locale, setLocale } = useLocale();
+
     return (
         <div className="dashboard-container">
             {/* Sidebar */}
@@ -38,7 +41,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, on
                     <div className="flex flex-col">
                         <span className="brand-text">NebulaOS</span>
                         <span className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] -mt-1 opacity-60">
-                            Enterprise Cloud
+                            {t.app.tagline}
                         </span>
                     </div>
                     <button
@@ -51,23 +54,31 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, activeTab, on
                 </header>
 
                 <nav className="sidebar-nav">
-                    <SidebarItem icon={LayoutDashboard} label="Overview" active={activeTab === 'overview'} onClick={() => onTabChange('overview')} />
-                    <SidebarItem icon={Server} label="Resources" active={activeTab === 'resources'} onClick={() => onTabChange('resources')} />
-                    <SidebarItem icon={HardDrive} label="Storage" active={activeTab === 'storage'} onClick={() => onTabChange('storage')} />
-                    <SidebarItem icon={Landmark} label="Governance" active={activeTab === 'governance'} onClick={() => onTabChange('governance')} />
-                    <SidebarItem icon={Activity} label="Observability" active={activeTab === 'observability'} onClick={() => onTabChange('observability')} />
-                    <SidebarItem icon={Receipt} label="Billing & usage" active={activeTab === 'billing'} onClick={() => onTabChange('billing')} />
-                    <SidebarItem icon={Globe} label="Networking" active={activeTab === 'networking'} onClick={() => onTabChange('networking')} />
-                    <SidebarItem icon={Map} label="Global Map" active={activeTab === 'global'} onClick={() => onTabChange('global')} />
-                    <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => onTabChange('marketplace')} />
-                    <SidebarItem icon={Brain} label="AI Advisor" active={activeTab === 'advisor'} onClick={() => onTabChange('advisor')} />
-                    <SidebarItem icon={Sun} label="Enterprise" active={activeTab === 'hierarchy'} onClick={() => onTabChange('hierarchy')} />
-                    <SidebarItem icon={Server} label="Bare Metal" active={activeTab === 'baremetal'} onClick={() => onTabChange('baremetal')} />
-                    <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
+                    <SidebarItem icon={LayoutDashboard} label={t.nav.overview} active={activeTab === 'overview'} onClick={() => onTabChange('overview')} />
+                    <SidebarItem icon={Server} label={t.nav.resources} active={activeTab === 'resources'} onClick={() => onTabChange('resources')} />
+                    <SidebarItem icon={HardDrive} label={t.nav.storage} active={activeTab === 'storage'} onClick={() => onTabChange('storage')} />
+                    <SidebarItem icon={Landmark} label={t.nav.governance} active={activeTab === 'governance'} onClick={() => onTabChange('governance')} />
+                    <SidebarItem icon={Activity} label={t.nav.observability} active={activeTab === 'observability'} onClick={() => onTabChange('observability')} />
+                    <SidebarItem icon={Receipt} label={t.nav.billing} active={activeTab === 'billing'} onClick={() => onTabChange('billing')} />
+                    <SidebarItem icon={Globe} label={t.nav.networking} active={activeTab === 'networking'} onClick={() => onTabChange('networking')} />
+                    <SidebarItem icon={Map} label={t.nav.global} active={activeTab === 'global'} onClick={() => onTabChange('global')} />
+                    <SidebarItem icon={ShoppingBag} label={t.nav.marketplace} active={activeTab === 'marketplace'} onClick={() => onTabChange('marketplace')} />
+                    <SidebarItem icon={Brain} label={t.nav.advisor} active={activeTab === 'advisor'} onClick={() => onTabChange('advisor')} />
+                    <SidebarItem icon={Sun} label={t.nav.hierarchy} active={activeTab === 'hierarchy'} onClick={() => onTabChange('hierarchy')} />
+                    <SidebarItem icon={Server} label={t.nav.baremetal} active={activeTab === 'baremetal'} onClick={() => onTabChange('baremetal')} />
+                    <SidebarItem icon={Settings} label={t.nav.settings} active={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
                 </nav>
 
-                <div className="mt-auto pt-6 border-t border-white/5">
-                    <SidebarItem icon={LogOut} label="Sign Out" onClick={onLogout} />
+                <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
+                    <button
+                        className="sidebar-item w-full"
+                        onClick={() => setLocale(locale === 'en' ? 'pt-BR' : 'en')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <Languages size={20} />
+                        <span>{locale === 'en' ? 'Português (BR)' : 'English'}</span>
+                    </button>
+                    <SidebarItem icon={LogOut} label={t.nav.signOut} onClick={onLogout} />
                 </div>
             </aside>
 

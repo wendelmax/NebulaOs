@@ -272,7 +272,39 @@ func main() {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "nebula_token",
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteStrictMode,
+		})
+
 		json.NewEncoder(w).Encode(map[string]string{"token": token})
+	})
+
+	mux.HandleFunc("/auth/me", func(w http.ResponseWriter, r *http.Request) {
+		user, err := authMiddleware.AuthenticateRequest(r)
+		if err != nil {
+			http.Error(w, "not authenticated", http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(user)
+	})
+
+	mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "nebula_token",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   -1,
+		})
+		json.NewEncoder(w).Encode(map[string]string{"message": "logged out"})
 	})
 
 	mux.Handle("/auth/change-password", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
