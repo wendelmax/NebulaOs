@@ -15,7 +15,7 @@ func IsNebulaContainer(c container.Summary) bool {
 			strings.Contains(n, "postgres") ||
 			strings.Contains(n, "keycloak") ||
 			strings.Contains(n, "vault") ||
-			strings.Contains(n, "localstack") {
+			strings.Contains(n, "moto") {
 			return true
 		}
 	}

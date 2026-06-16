@@ -3,6 +3,8 @@ package aws
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,9 +19,17 @@ type AWSProvider struct {
 func NewAWSProvider(ctx context.Context, region string, endpoint string) (*AWSProvider, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if endpoint != "" {
+			ep := endpoint
+			if u, err := url.Parse(endpoint); err == nil && !strings.Contains(u.Hostname(), "localhost") {
+				if u.Port() != "" {
+					ep = fmt.Sprintf("http://%s.%s:%s", strings.ToLower(service), u.Hostname(), u.Port())
+				} else {
+					ep = fmt.Sprintf("http://%s.%s", strings.ToLower(service), u.Hostname())
+				}
+			}
 			return aws.Endpoint{
 				PartitionID:   "aws",
-				URL:           endpoint,
+				URL:           ep,
 				SigningRegion: region,
 			}, nil
 		}

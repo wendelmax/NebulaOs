@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, Moon, ShoppingBag, Map, Brain, Languages } from 'lucide-react';
+import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, ShoppingBag, Map, Brain, Languages } from 'lucide-react';
 import { useLocale } from '../contexts/LocaleContext';
 
 interface SidebarItemProps {

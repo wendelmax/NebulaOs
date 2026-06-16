@@ -36,7 +36,7 @@ if ! [ -x "$(command -v docker-compose)" ]; then
 fi
 
 echo -e "${GREEN}[1/3] Starting Core Infrastructure (Postgres, NATS, Traefik)...${NC}"
-docker-compose -f deploy/local/docker-compose.yml up -d postgres nats traefik localstack vault
+docker-compose -f deploy/local/docker-compose.yml up -d postgres nats traefik moto vault
 
 echo -e "${GREEN}[2/3] Building and Starting NebulaOS API & Dashboard...${NC}"
 docker-compose -f deploy/local/docker-compose.yml up -d --build nebula-api nebula-dashboard

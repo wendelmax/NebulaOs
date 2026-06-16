@@ -33,7 +33,7 @@ const AppInner: React.FC = () => {
       .finally(() => setAuthLoading(false));
   }, []);
 
-  const handleLogin = (token: string, mustChange: boolean) => {
+  const handleLogin = (_token: string, mustChange: boolean) => {
     setMustChangePassword(mustChange);
     setIsAuthenticated(true);
     navigate(mustChange ? '/change-password' : '/overview');
