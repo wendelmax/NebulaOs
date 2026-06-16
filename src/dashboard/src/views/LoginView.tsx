@@ -23,10 +23,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         try {
             const response = await api.login({ username, password });
             const token = response.data.token;
-            const decoded: any = jwtDecode(token);
+            const decoded = jwtDecode<{ must_change_password: boolean }>(token);
             onLogin(token, decoded.must_change_password);
-        } catch (err: any) {
-            setError(err.response?.data || t.auth.error);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? (err as Record<string, unknown>).response?.data : String(err);
+            setError(typeof message === 'string' ? message : t.auth.error);
         } finally {
             setLoading(false);
         }

@@ -1,0 +1,109 @@
+# Dokploy - Self-hosted PaaS for NebulaOS
+#
+# This compose file is intended to be used with Dokploy (https://dokploy.com)
+# as an alternative deployment method for the NebulaOS stack.
+#
+# Usage with Dokploy:
+#   1. Create a new "Compose" service in Dokploy
+#   2. Point it to this repository and set Compose Path to "deploy/dokploy/docker-compose.dokploy.yml"
+#   3. Configure environment variables in Dokploy UI
+#   4. Add domains for each service in Dokploy's Domains tab
+#
+# Alternatively, deploy standalone:
+#   docker compose -f deploy/dokploy/docker-compose.dokploy.yml up -d
+#
+# Prerequisites:
+#   - Docker and Docker Compose v2
+#   - Traefik (Dokploy provides this automatically)
+#   - PostgreSQL 16+ (external or use the postgres service below)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nebula-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nebula}
+      POSTGRES_USER: ${POSTGRES_USER:-nebula}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../src/api/internal/infrastructure/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nebula}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nebula-network
+    labels:
+      - "traefik.enable=false"
+
+  moto:
+    image: python:3.12-alpine
+    container_name: nebula-moto
+    command: >
+      sh -c "pip install --no-cache-dir moto[ec2,s3,server] && moto_server -H 0.0.0.0 -p 4566"
+    ports:
+      - "4566:4566"
+    networks:
+      - nebula-network
+    labels:
+      - "traefik.enable=false"
+
+  nebula-api:
+    build:
+      context: ../..
+      dockerfile: src/api/Dockerfile
+    container_name: nebula-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-nebula}:${POSTGRES_PASSWORD:-password123}@postgres:5432/${POSTGRES_DB:-nebula}?sslmode=disable
+      - NATS_URL=${NATS_URL:-nats://nats:4222}
+      - KC_URL=${KC_URL:-http://keycloak:8080}
+      - VAULT_URL=${VAULT_URL:-http://vault:8200}
+      - VAULT_TOKEN=${VAULT_TOKEN:-root}
+      - JWT_SECRET=${JWT_SECRET}
+      - AWS_ENDPOINT=http://moto:4566
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - CORS_ALLOWED_ORIGIN=${CORS_ALLOWED_ORIGIN:-*}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - nebula-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nebula-api.rule=Host(`${API_DOMAIN:-api.nebula.local}`)"
+      - "traefik.http.routers.nebula-api.entrypoints=websecure"
+      - "traefik.http.services.nebula-api.loadbalancer.server.port=8000"
+
+  nebula-dashboard:
+    build:
+      context: ../../src/dashboard
+      dockerfile: Dockerfile
+    container_name: nebula-dashboard
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-https://api.nebula.local}
+      VITE_AUTH_STORAGE_KEY: ${VITE_AUTH_STORAGE_KEY:-nebula_token}
+    networks:
+      - nebula-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nebula-dashboard.rule=Host(`${DASHBOARD_DOMAIN:-nebula.local}`)"
+      - "traefik.http.routers.nebula-dashboard.entrypoints=websecure"
+      - "traefik.http.services.nebula-dashboard.loadbalancer.server.port=80"
+
+networks:
+  nebula-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

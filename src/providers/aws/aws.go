@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,10 +14,16 @@ import (
 )
 
 type AWSProvider struct {
-	client *ec2.Client
+	client   *ec2.Client
+	region   string
+	endpoint string
+	amiID    string
 }
 
 func NewAWSProvider(ctx context.Context, region string, endpoint string) (*AWSProvider, error) {
+	if endpoint == "" {
+		endpoint = "http://localhost:4566"
+	}
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if endpoint != "" {
 			ep := endpoint
@@ -44,12 +51,24 @@ func NewAWSProvider(ctx context.Context, region string, endpoint string) (*AWSPr
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
-	return &AWSProvider{client: ec2.NewFromConfig(cfg)}, nil
+	return &AWSProvider{
+		client:   ec2.NewFromConfig(cfg),
+		region:   region,
+		endpoint: endpoint,
+		amiID:    getEnv("AWS_AMI_ID", "ami-0c55b159cbfafe1f0"),
+	}, nil
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func (p *AWSProvider) Provision(ctx context.Context, resource *domain.Resource) error {
 	input := &ec2.RunInstancesInput{
-		ImageId:      aws.String("ami-12345678"),
+		ImageId:      aws.String(p.amiID),
 		InstanceType: "t2.micro",
 		MinCount:     aws.Int32(1),
 		MaxCount:     aws.Int32(1),

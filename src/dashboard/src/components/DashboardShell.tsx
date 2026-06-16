@@ -1,9 +1,10 @@
+import type React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Server, Globe, Settings, LogOut, ChevronRight, HardDrive, Activity, Landmark, Receipt, Sun, ShoppingBag, Map, Brain, Languages } from 'lucide-react';
 import { useLocale } from '../contexts/LocaleContext';
 
 interface SidebarItemProps {
-    icon: any;
+    icon: React.ComponentType<{ size?: number }>;
     label: string;
     to: string;
     active?: boolean;
@@ -22,7 +23,7 @@ interface DashboardShellProps {
     onLogout: () => void;
 }
 
-const navItems: { icon: any; labelKey: string; tab: string }[] = [
+const navItems: { icon: React.ComponentType<{ size?: number }>; labelKey: string; tab: string }[] = [
     { icon: LayoutDashboard, labelKey: 'overview', tab: '/overview' },
     { icon: Server, labelKey: 'resources', tab: '/resources' },
     { icon: HardDrive, labelKey: 'storage', tab: '/storage' },
@@ -44,7 +45,6 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, onLogout }) =
 
     return (
         <div className="dashboard-container">
-            {/* Sidebar */}
             <aside className="sidebar">
                 <header className="sidebar-brand">
                     <div className="brand-icon">
@@ -63,7 +63,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, onLogout }) =
                         <SidebarItem
                             key={item.tab}
                             icon={item.icon}
-                            label={(t.nav as any)[item.labelKey] || item.labelKey}
+                            label={(t.nav as Record<string, string>)[item.labelKey] || item.labelKey}
                             to={item.tab}
                             active={location.pathname === item.tab}
                         />
@@ -86,7 +86,6 @@ const DashboardShell: React.FC<DashboardShellProps> = ({ children, onLogout }) =
                 </div>
             </aside>
 
-            {/* Main Content */}
             <main className="main-content">
                 <div className="animate-fade-in h-min">
                     {children}

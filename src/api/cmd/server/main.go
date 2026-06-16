@@ -172,20 +172,29 @@ func main() {
 
 		// Initial data for in-memory setup
 		seedCtx := context.Background()
-		regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_REGION_US_NAME", "US East (Proxmox Cluster A)"), Location: getEnv("SEED_REGION_US_LOCATION", "Virginia"), IsDefault: true})
-		regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_EU_ID", "reg-eu-west"), Name: getEnv("SEED_REGION_EU_NAME", "EU West (OpenStack Lab)"), Location: getEnv("SEED_REGION_EU_LOCATION", "London")})
-		zoneRepo.Create(seedCtx, &domain.AvailabilityZone{ID: getEnv("SEED_ZONE_ID", "zone-a"), RegionID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_ZONE_NAME", "Zone A"), State: "available"})
+		if err := regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_REGION_US_NAME", "US East (Proxmox Cluster A)"), Location: getEnv("SEED_REGION_US_LOCATION", "Virginia"), IsDefault: true}); err != nil {
+			log.Printf("Warning: failed to seed US region: %v", err)
+		}
+		if err := regionRepo.Create(seedCtx, &domain.Region{ID: getEnv("SEED_REGION_EU_ID", "reg-eu-west"), Name: getEnv("SEED_REGION_EU_NAME", "EU West (OpenStack Lab)"), Location: getEnv("SEED_REGION_EU_LOCATION", "London")}); err != nil {
+			log.Printf("Warning: failed to seed EU region: %v", err)
+		}
+		if err := zoneRepo.Create(seedCtx, &domain.AvailabilityZone{ID: getEnv("SEED_ZONE_ID", "zone-a"), RegionID: getEnv("SEED_REGION_US_ID", "reg-us-east"), Name: getEnv("SEED_ZONE_NAME", "Zone A"), State: "available"}); err != nil {
+			log.Printf("Warning: failed to seed zone: %v", err)
+		}
 
 		// Seed Providers
-		providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_PX_ID", "prov-px-1"), Name: "Proxmox Production", Type: domain.ProxmoxProvider, Endpoint: proxmoxURL, Status: "active", CreatedAt: time.Now()})
-		providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_OS_ID", "prov-os-1"), Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: osEndpoint, Status: "active", CreatedAt: time.Now()})
+		if err := providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_PX_ID", "prov-px-1"), Name: "Proxmox Production", Type: domain.ProxmoxProvider, Endpoint: proxmoxURL, Status: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed proxmox provider: %v", err)
+		}
+		if err := providerRepo.Create(seedCtx, &domain.Provider{ID: getEnv("SEED_PROVIDER_OS_ID", "prov-os-1"), Name: "OpenStack Lab", Type: domain.OpenStackProvider, Endpoint: osEndpoint, Status: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed openstack provider: %v", err)
+		}
 	}
 
 	// Seed internal admin user, defaults and test data
 	seedEnterpriseDefaults(tenantRepo, projectRepo, orgRepo, deptRepo, userRepo, resourceRepo, volumeRepo, bucketRepo)
 
 	fmt.Printf("Repositories initialized (Persistence: %v)\n", dbURL != "")
-	_ = gslbRepo // Explicitly use to avoid lint error until usecases are added
 
 
 	// Choose Identity Manager (Keycloak or Internal)
@@ -720,7 +729,14 @@ func main() {
 	mux.Handle("/api/stats", authMiddleware.Authenticate(http.HandlerFunc(billingHandler.GetStats)))
 
 	// Enterprise Hierarchy & Bare Metal
-	mux.Handle("/api/organizations", authMiddleware.Authenticate(http.HandlerFunc(hierarchyHandler.ListOrganizations)))
+	mux.Handle("/api/organizations", authMiddleware.Authenticate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			hierarchyHandler.CreateOrganization(w, r)
+		default:
+			hierarchyHandler.ListOrganizations(w, r)
+		}
+	})))
 	mux.Handle("/api/departments", authMiddleware.Authenticate(http.HandlerFunc(hierarchyHandler.ListDepartments)))
 	mux.Handle("/api/baremetal/nodes", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.ListNodes)))
 	mux.Handle("/api/baremetal/register", authMiddleware.Authenticate(http.HandlerFunc(bmHandler.RegisterNode)))
@@ -815,37 +831,45 @@ func seedEnterpriseDefaults(
 	_, err := tenantRepo.GetByID(ctx, tenantID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default tenant...")
-		tenantRepo.Create(ctx, &domain.Tenant{ID: tenantID, Name: tenantName, CreatedAt: time.Now()})
+		if err := tenantRepo.Create(ctx, &domain.Tenant{ID: tenantID, Name: tenantName, CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed tenant: %v", err)
+		}
 	}
 
 	// 2. Seed Default Organization
 	_, err = orgRepo.GetByID(ctx, orgID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default organization...")
-		orgRepo.Create(ctx, &domain.Organization{
+		if err := orgRepo.Create(ctx, &domain.Organization{
 			ID:        orgID,
 			Name:      orgName,
 			CreatedAt: time.Now(),
-		})
+		}); err != nil {
+			log.Printf("Warning: failed to seed organization: %v", err)
+		}
 	}
 
 	// 3. Seed Default Department
 	_, err = deptRepo.GetByID(ctx, deptID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding core infrastructure department...")
-		deptRepo.Create(ctx, &domain.Department{
+		if err := deptRepo.Create(ctx, &domain.Department{
 			ID:             deptID,
 			OrganizationID: orgID,
 			Name:           deptName,
 			CreatedAt:      time.Now(),
-		})
+		}); err != nil {
+			log.Printf("Warning: failed to seed department: %v", err)
+		}
 	}
 
 	// 4. Seed Default Project
 	_, err = projectRepo.GetByID(ctx, projectID)
 	if err != nil {
 		fmt.Println("[Nebula] Seeding default project...")
-		projectRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: projectName, CreatedAt: time.Now()})
+		if err := projectRepo.Create(ctx, &domain.Project{ID: projectID, TenantID: tenantID, Name: projectName, CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed project: %v", err)
+		}
 	}
 
 	// 5. Seed Admin User
@@ -853,20 +877,29 @@ func seedEnterpriseDefaults(
 	if err != nil || admin == nil {
 		fmt.Println("[Nebula] Seeding default administrator...")
 		tempAuth := services.NewInternalIdentityManager(userRepo, "temp")
-		hash, _ := tempAuth.HashPassword(adminPass)
-		userRepo.Create(ctx, &domain.User{
-			ID:                 adminID,
-			Username:           adminUser,
-			PasswordHash:       hash,
-			Email:              adminEmail,
-			TenantID:           tenantID,
-			MustChangePassword: true,
-			CreatedAt:          time.Now(),
-		})
+		hash, hashErr := tempAuth.HashPassword(adminPass)
+		if hashErr != nil {
+			log.Printf("Warning: failed to hash admin password: %v", hashErr)
+		} else {
+			if err := userRepo.Create(ctx, &domain.User{
+				ID:                 adminID,
+				Username:           adminUser,
+				PasswordHash:       hash,
+				Email:              adminEmail,
+				TenantID:           tenantID,
+				MustChangePassword: true,
+				CreatedAt:          time.Now(),
+			}); err != nil {
+				log.Printf("Warning: failed to seed admin user: %v", err)
+			}
+		}
 	}
 
 	// 6. Seed Default Resources if project is empty
-	resources, _ := resourceRepo.GetByProject(ctx, projectID)
+	resources, err := resourceRepo.GetByProject(ctx, projectID)
+	if err != nil {
+		log.Printf("Warning: failed to check existing resources: %v", err)
+	}
 	if len(resources) == 0 {
 		seedResourceID1 := getEnv("SEED_RESOURCE_NODE_ID", "v-n1")
 		seedResourceID2 := getEnv("SEED_RESOURCE_VOL_ID", "v-s1")
@@ -875,11 +908,18 @@ func seedEnterpriseDefaults(
 		seedBucketRegion := getEnv("SEED_BUCKET_REGION", "us-east-1")
 
 		fmt.Println("[Nebula] Seeding initial resources...")
-		resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID1, ProjectID: projectID, Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()})
-		resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID2, ProjectID: projectID, Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()})
-		
-		volumeRepo.Create(ctx, &domain.Volume{ID: seedVolumeID, ProjectID: projectID, Name: "Primary-OS-Disk", SizeGB: 100, State: "active", CreatedAt: time.Now()})
-		bucketRepo.Create(ctx, &domain.Bucket{ID: seedBucketID, ProjectID: projectID, Name: "Global-Assets", Region: seedBucketRegion, State: "active", CreatedAt: time.Now()})
+		if err := resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID1, ProjectID: projectID, Name: "Node-1", Type: domain.ComputeResource, State: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed resource: %v", err)
+		}
+		if err := resourceRepo.Create(ctx, &domain.Resource{ID: seedResourceID2, ProjectID: projectID, Name: "Vol-1", Type: domain.StorageResource, State: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed resource: %v", err)
+		}
+		if err := volumeRepo.Create(ctx, &domain.Volume{ID: seedVolumeID, ProjectID: projectID, Name: "Primary-OS-Disk", SizeGB: 100, State: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed volume: %v", err)
+		}
+		if err := bucketRepo.Create(ctx, &domain.Bucket{ID: seedBucketID, ProjectID: projectID, Name: "Global-Assets", Region: seedBucketRegion, State: "active", CreatedAt: time.Now()}); err != nil {
+			log.Printf("Warning: failed to seed bucket: %v", err)
+		}
 	}
 }
 

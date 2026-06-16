@@ -42,8 +42,15 @@ func (h *HierarchyHandler) ListDepartments(w http.ResponseWriter, r *http.Reques
 
 func (h *HierarchyHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	var org domain.Organization
-	json.NewDecoder(r.Body).Decode(&org)
+	if err := json.NewDecoder(r.Body).Decode(&org); err != nil {
+		http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 	org.ID = domain.NewID()
-	h.orgRepo.Create(r.Context(), &org)
+	if err := h.orgRepo.Create(r.Context(), &org); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(org)
 }
