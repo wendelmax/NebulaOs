@@ -83,9 +83,13 @@ func main() {
 		providerFactory.Register("openstack", osProvider)
 	}
 
-	bmUser := getEnv("BM_IPMI_USER", "admin")
-	bmPass := getEnv("BM_IPMI_PASSWORD", "password")
-	bmProvider := baremetal.NewBareMetalProvider(bmUser, bmPass)
+	bmSSHHost := getEnv("BM_SSH_HOST", "localhost")
+	bmSSHUser := getEnv("BM_SSH_USER", "root")
+	bmSSHKey := getEnv("BM_SSH_KEY_PATH", "")
+	bmSSHPass := getEnv("BM_SSH_PASSWORD", "")
+	bmIPMIUser := getEnv("BM_IPMI_USER", "admin")
+	bmIPMIPass := getEnv("BM_IPMI_PASSWORD", "password")
+	bmProvider := baremetal.NewBareMetalProvider(bmSSHHost, bmSSHUser, bmSSHKey, bmSSHPass, bmIPMIUser, bmIPMIPass)
 	providerFactory.Register("baremetal", bmProvider)
 
 	awsRegion := getEnv("AWS_REGION", "us-east-1")

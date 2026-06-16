@@ -10,6 +10,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.293.0
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/wendelmax/nebulaos/src/api v0.0.0-00010101000000-000000000000
+	golang.org/x/crypto v0.48.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -25,5 +27,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7 // indirect
 	github.com/aws/smithy-go v1.24.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 )

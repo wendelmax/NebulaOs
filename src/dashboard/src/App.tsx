@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import DashboardShell from './components/DashboardShell';
-import type { TabType } from './components/DashboardShell';
 import Overview from './views/Overview';
 import ResourcesView from './views/ResourcesView';
 import StorageView from './views/StorageView';
@@ -21,15 +21,10 @@ import { LocaleProvider, useLocale } from './contexts/LocaleContext';
 
 const AppInner: React.FC = () => {
   const { t } = useLocale();
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-
-  React.useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     api.checkAuth()
@@ -38,56 +33,16 @@ const AppInner: React.FC = () => {
       .finally(() => setAuthLoading(false));
   }, []);
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-
   const handleLogin = (token: string, mustChange: boolean) => {
     setMustChangePassword(mustChange);
     setIsAuthenticated(true);
+    navigate(mustChange ? '/change-password' : '/overview');
   };
 
   const handleLogout = async () => {
     try { await api.logout(); } catch { /* ignore */ }
     setIsAuthenticated(false);
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <Overview />;
-      case 'resources':
-        return <ResourcesView />;
-      case 'storage':
-        return <StorageView />;
-      case 'governance':
-        return <GovernanceView />;
-      case 'observability':
-        return <ObservabilityView />;
-      case 'billing':
-        return <BillingView />;
-      case 'networking':
-        return <Networking />;
-      case 'marketplace':
-        return <Marketplace />;
-      case 'global':
-        return <GlobalTopology />;
-      case 'advisor':
-        return <AIAdvisor />;
-      case 'settings':
-        return <SettingsView />;
-      case 'hierarchy':
-        return <HierarchyView />;
-      case 'baremetal':
-        return <BareMetalView />;
-      default:
-        return (
-          <div className="glass p-12 text-center">
-            <h2 style={{ color: 'var(--text-muted)' }}>{t.common.moduleInDevelopment}</h2>
-            <p style={{ color: 'rgba(148, 163, 184, 0.6)', marginTop: '1rem' }}>
-              {t.common.moduleInDevelopmentDesc}
-            </p>
-          </div>
-        );
-    }
+    navigate('/login');
   };
 
   if (authLoading) {
@@ -101,30 +56,51 @@ const AppInner: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
-  }
-
-  if (mustChangePassword) {
-    return <ChangePasswordView onComplete={() => setMustChangePassword(false)} />;
-  }
-
   return (
-    <DashboardShell
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      theme={theme}
-      onToggleTheme={toggleTheme}
-      onLogout={handleLogout}
-    >
-      {renderContent()}
-    </DashboardShell>
+    <Routes>
+      <Route path="/login" element={
+        !isAuthenticated
+          ? <LoginView onLogin={handleLogin} />
+          : <Navigate to="/overview" replace />
+      } />
+      <Route path="/change-password" element={
+        isAuthenticated && mustChangePassword
+          ? <ChangePasswordView onComplete={() => { setMustChangePassword(false); navigate('/overview'); }} />
+          : !isAuthenticated
+            ? <Navigate to="/login" replace />
+            : <Navigate to="/overview" replace />
+      } />
+      <Route path="/*" element={
+        isAuthenticated
+          ? <DashboardShell onLogout={handleLogout}>
+              <Routes>
+                <Route path="/overview" element={<Overview />} />
+                <Route path="/resources" element={<ResourcesView />} />
+                <Route path="/storage" element={<StorageView />} />
+                <Route path="/governance" element={<GovernanceView />} />
+                <Route path="/observability" element={<ObservabilityView />} />
+                <Route path="/billing" element={<BillingView />} />
+                <Route path="/networking" element={<Networking />} />
+                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/global" element={<GlobalTopology />} />
+                <Route path="/advisor" element={<AIAdvisor />} />
+                <Route path="/settings" element={<SettingsView />} />
+                <Route path="/hierarchy" element={<HierarchyView />} />
+                <Route path="/baremetal" element={<BareMetalView />} />
+                <Route path="*" element={<Navigate to="/overview" replace />} />
+              </Routes>
+            </DashboardShell>
+          : <Navigate to="/login" replace />
+      } />
+    </Routes>
   );
 }
 
 const App: React.FC = () => (
   <LocaleProvider>
-    <AppInner />
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
   </LocaleProvider>
 );
 
