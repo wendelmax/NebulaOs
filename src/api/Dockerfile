@@ -4,9 +4,10 @@ FROM golang:1.26-alpine AS builder
 WORKDIR /app
 
 # Copy go.work and module files
-COPY go.work go.work.sum ./
+COPY go.work ./
 COPY src/api/go.mod src/api/go.sum ./src/api/
 COPY src/providers/go.mod src/providers/go.sum ./src/providers/
+COPY src/cli/go.mod src/cli/go.sum ./src/cli/
 
 # Download dependencies
 RUN go mod download
@@ -14,6 +15,7 @@ RUN go mod download
 # Copy source code
 COPY src/api/ ./src/api/
 COPY src/providers/ ./src/providers/
+COPY src/cli/ ./src/cli/
 
 # Build the API
 WORKDIR /app/src/api
